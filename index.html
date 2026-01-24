@@ -1,661 +1,600 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Dinosaur Running - 3D Shooter</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <title>Dinosaur Running</title>
   <style>
-    html, body { margin:0; padding:0; overflow:hidden; background:#0b1020; touch-action:none; }
-    canvas { display:block; }
+    html,body{margin:0;padding:0;overflow:hidden;background:#0b1020;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+    canvas{display:block;touch-action:none}
 
     /* HUD */
     #hud{
-      position:fixed; top:12px; left:12px; right:12px;
-      display:flex; justify-content:space-between; align-items:center;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
-      z-index: 20; pointer-events:none;
+      position:fixed;top:10px;left:10px;right:10px;
+      display:flex;gap:10px;align-items:center;justify-content:space-between;
+      z-index:10;color:#fff;pointer-events:none;
     }
     .pill{
       pointer-events:none;
-      padding:10px 12px;
-      border-radius:16px;
-      background: rgba(255,255,255,0.10);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.14);
-      color:#fff;
-      font-weight:700;
-      letter-spacing: .2px;
-      font-size:14px;
-      display:flex;
-      gap:12px;
-      align-items:center;
-      white-space:nowrap;
+      display:inline-flex;align-items:center;gap:10px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+      padding:8px 10px;border-radius:999px;
+      backdrop-filter: blur(6px);
+      font-size:13px;
     }
-    .pill b{ font-variant-numeric: tabular-nums; }
+    #hpWrap{width:min(240px,45vw);height:10px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden}
+    #hpBar{height:100%;width:100%;background:rgba(255,255,255,.9)}
+    #mini{
+      opacity:.85;font-size:12px
+    }
 
     /* Crosshair */
     #crosshair{
-      position:fixed;
-      left:50%; top:50%;
-      width:16px; height:16px;
-      transform: translate(-50%, -50%);
-      z-index: 15;
-      pointer-events:none;
-      opacity: .9;
+      position:fixed;left:50%;top:50%;
+      width:16px;height:16px;transform:translate(-50%,-50%);
+      z-index:10;pointer-events:none;
     }
-    #crosshair:before, #crosshair:after{
-      content:"";
-      position:absolute;
-      left:50%; top:50%;
-      background:rgba(255,255,255,0.85);
+    #crosshair:before,#crosshair:after{
+      content:"";position:absolute;left:50%;top:50%;
+      background:rgba(255,255,255,.85);
+      transform:translate(-50%,-50%);
       border-radius:2px;
-      transform: translate(-50%, -50%);
     }
-    #crosshair:before{ width:2px; height:16px; }
-    #crosshair:after{ width:16px; height:2px; }
+    #crosshair:before{width:14px;height:2px}
+    #crosshair:after{width:2px;height:14px}
 
-    /* Buttons + Touch UI */
+    /* Bottom UI */
     #ui{
-      position:fixed; left:0; right:0; bottom:12px;
-      display:flex; justify-content:space-between; align-items:flex-end;
-      padding: 0 12px;
-      z-index: 30;
+      position:fixed;left:0;right:0;bottom:14px;
+      display:flex;justify-content:space-between;align-items:flex-end;
+      padding:0 14px;z-index:10;
+      pointer-events:none;
     }
-
-    #shootBtn{
-      pointer-events:auto;
-      border:none;
-      color:#fff;
-      font-size:18px;
-      font-weight:800;
-      padding:16px 18px;
-      border-radius:18px;
-      background: linear-gradient(180deg, rgba(255,90,90,.95), rgba(255,60,60,.85));
-      box-shadow: 0 12px 28px rgba(255,60,60,.25);
-      user-select:none;
-    }
-    #shootBtn:active{ transform: translateY(1px); }
 
     /* Joystick */
     #joyWrap{
       pointer-events:auto;
-      width:140px; height:140px;
-      border-radius:24px;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.12);
-      backdrop-filter: blur(8px);
-      display:flex; justify-content:center; align-items:center;
-      user-select:none;
-      touch-action:none;
+      width:140px;height:140px;border-radius:24px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(6px);
+      position:relative;overflow:hidden;
     }
     #joyBase{
-      width:92px; height:92px;
-      border-radius:999px;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.12);
-      position:relative;
+      position:absolute;left:50%;top:50%;
+      width:92px;height:92px;border-radius:999px;
+      transform:translate(-50%,-50%);
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
     }
     #joyKnob{
-      width:44px; height:44px;
-      border-radius:999px;
-      background: rgba(255,255,255,0.55);
-      position:absolute;
-      left:50%; top:50%;
-      transform: translate(-50%, -50%);
-      box-shadow: 0 10px 18px rgba(0,0,0,.25);
+      position:absolute;left:50%;top:50%;
+      width:54px;height:54px;border-radius:999px;
+      transform:translate(-50%,-50%);
+      background:rgba(255,255,255,.22);
+      border:1px solid rgba(255,255,255,.20);
     }
 
-    /* Start overlay */
-    #overlay{
-      position:fixed; inset:0;
-      display:flex; justify-content:center; align-items:center;
-      background: radial-gradient(1200px 800px at 50% 40%, rgba(255,255,255,0.08), rgba(0,0,0,0.65));
-      z-index: 40;
-      padding: 18px;
-    }
-    #card{
-      width:min(520px, 92vw);
-      border-radius:22px;
-      background: rgba(255,255,255,0.10);
-      border: 1px solid rgba(255,255,255,0.14);
-      backdrop-filter: blur(10px);
-      color:#fff;
-      padding: 18px;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
-    }
-    #card h1{ margin:0 0 6px; font-size:22px; }
-    #card p{ margin:8px 0; opacity:.9; line-height:1.5; }
-    #card .row{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
-    .btn{
+    /* Right controls */
+    #rightControls{
       pointer-events:auto;
-      border:none;
-      padding:12px 14px;
-      border-radius:16px;
-      font-weight:900;
-      font-size:16px;
-      color:#0b1020;
-      background: rgba(255,255,255,0.92);
-      user-select:none;
+      display:flex;flex-direction:column;gap:10px;align-items:flex-end;
+    }
+    .row{display:flex;gap:10px;justify-content:flex-end}
+    .btn{
+      border:none;border-radius:16px;
+      padding:12px 16px;
+      font-size:15px;font-weight:700;
+      background:rgba(255,255,255,.92);
+      color:#111; box-shadow:0 10px 24px rgba(0,0,0,.25);
     }
     .btn.secondary{
+      background:rgba(255,255,255,.10);
+      color:#fff;border:1px dashed rgba(255,255,255,.30);
+      box-shadow:none;
+    }
+    .btn.tiny{padding:10px 12px;font-size:13px;border-radius:14px}
+    .btn:active{transform:translateY(1px)}
+    #shootBtn{padding:18px 22px;font-size:16px;border-radius:20px}
+
+    /* Overlay */
+    #overlay{
+      position:fixed;inset:0;z-index:20;
+      display:flex;align-items:center;justify-content:center;
+      background:radial-gradient(1200px 800px at 50% 20%, rgba(255,255,255,.08), rgba(0,0,0,.65));
       color:#fff;
-      background: rgba(255,255,255,0.14);
-      border: 1px solid rgba(255,255,255,0.18);
     }
-    .tiny{ font-size:12px; opacity:.8; margin-top:10px; }
+    #card{
+      width:min(520px,92vw);
+      background:rgba(15,20,40,.72);
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:22px;
+      padding:18px 16px;
+      backdrop-filter: blur(10px);
+      box-shadow:0 18px 50px rgba(0,0,0,.45);
+    }
+    #card h1{margin:0 0 8px;font-size:22px}
+    #card p{margin:6px 0;color:rgba(255,255,255,.86);line-height:1.35}
+    #card .tiny{margin-top:10px;font-size:12px;color:rgba(255,255,255,.70)}
+    #card .row{justify-content:flex-start}
+    #card .btn{pointer-events:auto}
+    #nameRow{display:flex;gap:10px;align-items:center;margin-top:10px}
+    #name{
+      flex:1;
+      padding:12px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.08);color:#fff;font-size:15px;outline:none;
+    }
+    #msg{margin-top:8px;font-size:13px;color:rgba(255,255,255,.82);min-height:18px}
 
-    /* Desktop hint */
-    #hint{
-      position:fixed; right:12px; top:64px;
-      z-index: 20;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
-      color:#fff; opacity:.75;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius:16px;
-      padding:10px 12px;
-      backdrop-filter: blur(8px);
-      display:none;
+    /* Right look zone hint (invisible but used for touch) */
+    #lookZone{
+      position:fixed;right:0;top:0;bottom:0;width:55vw;
+      z-index:9; /* below ui but above canvas */
+      pointer-events:auto;
+      background:transparent;
+      touch-action:none;
     }
 
-    @media (hover:hover) and (pointer:fine){
-      #hint{ display:block; }
+    /* Small screens */
+    @media (max-width:420px){
+      #joyWrap{width:124px;height:124px}
+      #shootBtn{padding:16px 18px}
+      .btn{font-size:14px}
     }
   </style>
 </head>
-
 <body>
   <div id="hud">
-    <div class="pill">❤️ HP: <b id="hp">100</b> &nbsp; 🎯 Score: <b id="score">0</b></div>
-    <div class="pill">👾 Enemies: <b id="enemies">0</b></div>
+    <div class="pill">
+      <span>❤️</span>
+      <div id="hpWrap"><div id="hpBar"></div></div>
+      <span id="hpText">100</span>
+    </div>
+    <div class="pill" id="mini">
+      <span>🎯 分數：<b id="score">0</b></span>
+      <span>💀 擊殺：<b id="kills">0</b></span>
+      <span>🌊 波次：<b id="wave">1</b></span>
+      <span>🔫 <b id="weaponName">手槍</b></span>
+    </div>
+    <div class="pill">
+      <span>🔊 音效：<b id="sfxState">開</b></span>
+      <span>🎵 音樂：<b id="musicState">開</b></span>
+    </div>
   </div>
 
   <div id="crosshair"></div>
-
-  <div id="hint">桌機：WASD 移動｜滑鼠拖曳看｜點擊 SHOOT 或按 F 開火</div>
+  <div id="lookZone" aria-label="look-zone"></div>
 
   <div id="ui">
-    <div id="joyWrap">
-      <div id="joyBase"><div id="joyKnob"></div></div>
+    <div id="joyWrap" aria-label="joystick">
+      <div id="joyBase"></div>
+      <div id="joyKnob"></div>
     </div>
-    <button id="shootBtn">🔫 SHOOT</button>
+
+    <div id="rightControls">
+      <div class="row">
+        <button class="btn secondary tiny" id="pauseBtn">⏸ 暫停</button>
+        <button class="btn secondary tiny" id="restartBtn">↻ 重新開始</button>
+      </div>
+      <div class="row">
+        <button class="btn secondary tiny" id="sfxBtn">🔊 音效：開</button>
+        <button class="btn secondary tiny" id="musicBtn">🎵 音樂：開</button>
+      </div>
+      <div class="row">
+        <button class="btn secondary tiny" id="w1">手槍</button>
+        <button class="btn secondary tiny" id="w2">機槍</button>
+        <button class="btn secondary tiny" id="w3">霰彈</button>
+      </div>
+      <button class="btn" id="shootBtn">🔫 SHOOT</button>
+    </div>
   </div>
 
   <div id="overlay">
     <div id="card">
-      <h1>🦖 Dinosaur Running - 3D Shooter</h1>
-      <p>手機：左下搖桿移動、右半邊滑動轉視角、按 <b>SHOOT</b> 開槍。</p>
-      <p>目標：打倒方塊敵人，別被碰到～被打到會扣血，0 就重生。</p>
-      <div class="row">
-        <button class="btn" id="startBtn">開始遊戲</button>
-        <button class="btn secondary" id="howBtn">操作再說一次</button>
+      <h1>🦖 Dinosaur Running（3D Shooter）</h1>
+      <p>📱 左下搖桿移動｜右半邊滑動轉視角｜按 SHOOT 開火</p>
+      <p>😼 小心方塊敵人會追你～每 15 擊殺會出 Boss！</p>
+      <div id="nameRow">
+        <input id="name" maxlength="12" value="Milo" placeholder="你的名字（12字以內）"/>
+        <button class="btn" id="startBtn">開始</button>
       </div>
-      <div class="tiny">提示：第一次點「開始」會解鎖音訊（手機瀏覽器規則）。</div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn secondary" id="resumeBtn" style="display:none">繼續</button>
+      </div>
+      <div class="tiny">提示：手機瀏覽器需要「先點一下」才允許播放聲音（系統規則）。</div>
+      <div id="msg"></div>
     </div>
   </div>
 
   <script type="module">
     import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
-    // ========= Basics =========
-    const renderer = new THREE.WebGLRenderer({ antialias:true });
+    // =========================
+    //   Settings (mobile-friendly)
+    // =========================
+    const CFG = {
+      moveSpeed: 5.2,
+      sprintBoost: 1.0,
+      friction: 11,
+      lookSensitivity: 0.0065,     // touch look
+      maxPitch: Math.PI * 0.48,
+      bulletSpeed: 24,
+      bulletLife: 1.0,
+      enemyBaseSpeed: 2.0,
+      enemySpawnRadius: 20,
+      enemyDespawnRadius: 70,
+      hitIFrames: 0.45,
+      scorePerKill: 120,
+      bossEveryKills: 15,
+      waveKills: 10,               // each wave after 10 kills
+      waveScale: 0.10,             // enemy speed/HP scaling
+      maxEnemiesSoft: 14,          // keep performance
+    };
+
+    // =========================
+    //   Audio (WebAudio synth)
+    // =========================
+    let audioCtx = null;
+    let sfxEnabled = true;
+    let musicEnabled = true;
+    let musicNodes = null;
+
+    function ensureAudio(){
+      if(!audioCtx){
+        const AC = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AC();
+      }
+      if(audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+    }
+
+    function beep(freq=520, ms=70, type="square", vol=0.05){
+      if(!sfxEnabled) return;
+      if(!audioCtx) return;
+      const t0 = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, t0);
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(vol, t0+0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + ms/1000);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t0); o.stop(t0 + ms/1000 + 0.02);
+    }
+
+    function startMusic(){
+      if(!musicEnabled) return;
+      if(!audioCtx) return;
+      stopMusic();
+
+      // Simple chilled loop: 2 oscillators + filter + gentle LFO
+      const master = audioCtx.createGain();
+      master.gain.value = 0.05;
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = 800;
+
+      const o1 = audioCtx.createOscillator();
+      const o2 = audioCtx.createOscillator();
+      o1.type = "sine";
+      o2.type = "triangle";
+      o1.frequency.value = 196; // G3
+      o2.frequency.value = 294; // D4
+
+      const lfo = audioCtx.createOscillator();
+      const lfoG = audioCtx.createGain();
+      lfo.type = "sine";
+      lfo.frequency.value = 0.12;
+      lfoG.gain.value = 160; // mod filter
+      lfo.connect(lfoG);
+      lfoG.connect(filter.frequency);
+
+      const pad = audioCtx.createGain();
+      pad.gain.value = 1.0;
+
+      o1.connect(pad); o2.connect(pad);
+      pad.connect(filter);
+      filter.connect(master);
+      master.connect(audioCtx.destination);
+
+      o1.start(); o2.start(); lfo.start();
+
+      // tiny chord drift
+      let step = 0;
+      const seq = [
+        [196, 294], // G-D
+        [220, 330], // A-E
+        [174, 262], // F-C
+        [196, 294], // G-D
+      ];
+      const timer = setInterval(()=>{
+        if(!audioCtx) return;
+        const [a,b] = seq[step % seq.length];
+        const t = audioCtx.currentTime;
+        o1.frequency.linearRampToValueAtTime(a, t+0.25);
+        o2.frequency.linearRampToValueAtTime(b, t+0.25);
+        step++;
+      }, 1800);
+
+      musicNodes = { master, filter, o1, o2, lfo, lfoG, pad, timer };
+    }
+
+    function stopMusic(){
+      if(!musicNodes) return;
+      try{
+        clearInterval(musicNodes.timer);
+        musicNodes.o1.stop();
+        musicNodes.o2.stop();
+        musicNodes.lfo.stop();
+      }catch(e){}
+      musicNodes = null;
+    }
+
+    // =========================
+    //   Renderer / Scene
+    // =========================
+    const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.setSize(innerWidth, innerHeight);
     renderer.shadowMap.enabled = true;
     document.body.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x0b1020, 30, 140);
+    scene.fog = new THREE.Fog(0x0b1020, 18, 70);
 
-    const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 300);
-    camera.position.set(0, 2.2, 6);
+    // Camera with yaw/pitch
+    const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 160);
+    let yaw = 0, pitch = -0.08;
 
-    // ========= Lights =========
-    const hemi = new THREE.HemisphereLight(0xbfd7ff, 0x0b1020, 0.9);
+    // Lights
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x223355, 0.9);
     scene.add(hemi);
 
-    const sun = new THREE.DirectionalLight(0xffffff, 1.05);
+    const sun = new THREE.DirectionalLight(0xffffff, 1.0);
     sun.position.set(10, 18, 8);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
-    sun.shadow.camera.near = 1;
-    sun.shadow.camera.far = 60;
+    sun.shadow.mapSize.set(1024,1024);
     sun.shadow.camera.left = -25;
     sun.shadow.camera.right = 25;
     sun.shadow.camera.top = 25;
     sun.shadow.camera.bottom = -25;
     scene.add(sun);
 
-    // ========= Ground + Walls =========
-    const groundGeo = new THREE.PlaneGeometry(200, 200);
-    const groundMat = new THREE.MeshStandardMaterial({ color: 0x141b35, roughness:0.95, metalness:0.02 });
+    // Ground
+    const groundGeo = new THREE.PlaneGeometry(260, 260);
+    const groundMat = new THREE.MeshStandardMaterial({ color: 0x11182e, roughness:1, metalness:0 });
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI/2;
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // arena boundary
-    const arenaSize = 40;
-    const wallH = 4;
-    const wallT = 0.6;
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x1f2a55, roughness:0.95 });
+    // Simple arena border (visual)
+    const ringGeo = new THREE.RingGeometry(22.8, 23.2, 64);
+    const ringMat = new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:0.10, side:THREE.DoubleSide });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = -Math.PI/2;
+    ring.position.y = 0.01;
+    scene.add(ring);
 
-    function makeWall(w, h, d, x, y, z){
-      const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), wallMat);
-      m.position.set(x,y,z);
-      m.castShadow = true;
-      m.receiveShadow = true;
-      scene.add(m);
-      return m;
-    }
-    const walls = [
-      makeWall(arenaSize*2, wallH, wallT, 0, wallH/2, -arenaSize),
-      makeWall(arenaSize*2, wallH, wallT, 0, wallH/2,  arenaSize),
-      makeWall(wallT, wallH, arenaSize*2, -arenaSize, wallH/2, 0),
-      makeWall(wallT, wallH, arenaSize*2,  arenaSize, wallH/2, 0),
+    // Player (cute "dino-ish" capsule with one piece body)
+    const player = new THREE.Group();
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness:0.95, metalness:0.0 });
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.45, 0.55, 8, 16), bodyMat);
+    body.castShadow = true;
+    body.position.y = 0.95;
+
+    // "Head bump" to look more dino
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 18), bodyMat);
+    head.castShadow = true;
+    head.position.set(0.18, 1.22, 0.35);
+
+    // Tail
+    const tail = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.65, 14), bodyMat);
+    tail.castShadow = true;
+    tail.position.set(0.0, 0.95, -0.55);
+    tail.rotation.x = Math.PI * 0.55;
+
+    player.add(body, head, tail);
+    player.position.set(0,0,0);
+    scene.add(player);
+
+    // Weapon muzzle helper
+    const muzzle = new THREE.Object3D();
+    muzzle.position.set(0.35, 1.15, 0.55);
+    player.add(muzzle);
+
+    // =========================
+    //   UI references
+    // =========================
+    const $ = (id)=>document.getElementById(id);
+    const hpBar = $("hpBar");
+    const hpText = $("hpText");
+    const scoreEl = $("score");
+    const killsEl = $("kills");
+    const waveEl = $("wave");
+    const weaponNameEl = $("weaponName");
+    const overlay = $("overlay");
+    const startBtn = $("startBtn");
+    const resumeBtn = $("resumeBtn");
+    const pauseBtn = $("pauseBtn");
+    const restartBtn = $("restartBtn");
+    const sfxBtn = $("sfxBtn");
+    const musicBtn = $("musicBtn");
+    const sfxState = $("sfxState");
+    const musicState = $("musicState");
+    const lookZone = $("lookZone");
+    const msgEl = $("msg");
+    const nameInput = $("name");
+
+    // Weapons
+    const weapons = [
+      { key:"pistol", name:"手槍",  cooldown:0.24, pellets:1, spread:0.002, damage:16, speed:CFG.bulletSpeed, color:0xffffff, kick:0.018 },
+      { key:"smg",    name:"機槍",  cooldown:0.09, pellets:1, spread:0.010, damage:8,  speed:CFG.bulletSpeed*1.05, color:0xffffff, kick:0.012 },
+      { key:"shotgun",name:"霰彈",  cooldown:0.58, pellets:6, spread:0.040, damage:7,  speed:CFG.bulletSpeed*0.95, color:0xffffff, kick:0.028 },
     ];
+    let weaponIndex = 0;
 
-    // ========= Player =========
-    const player = {
-      pos: new THREE.Vector3(0, 1.0, 0),
-      vel: new THREE.Vector3(),
-      yaw: 0,
-      pitch: 0,
-      hp: 100,
-      speed: 8.0,
-      radius: 0.6,
-    };
+    function setWeapon(i){
+      weaponIndex = Math.max(0, Math.min(weapons.length-1, i));
+      weaponNameEl.textContent = weapons[weaponIndex].name;
+      beep(660, 50, "square", 0.04);
+      $("w1").style.opacity = weaponIndex===0? "1":"0.78";
+      $("w2").style.opacity = weaponIndex===1? "1":"0.78";
+      $("w3").style.opacity = weaponIndex===2? "1":"0.78";
+    }
 
-    // Simple "gun" (camera attached)
-    const gun = new THREE.Group();
-    const gunBody = new THREE.Mesh(
-      new THREE.BoxGeometry(0.45, 0.22, 1.0),
-      new THREE.MeshStandardMaterial({ color: 0x2b2f3b, roughness:0.7 })
-    );
-    gunBody.position.set(0.25, -0.25, -0.7);
-    gunBody.castShadow = true;
-    gun.add(gunBody);
+    $("w1").addEventListener("click", ()=>{ ensureAudio(); setWeapon(0); });
+    $("w2").addEventListener("click", ()=>{ ensureAudio(); setWeapon(1); });
+    $("w3").addEventListener("click", ()=>{ ensureAudio(); setWeapon(2); });
 
-    const gunTip = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.06, 0.5, 10),
-      new THREE.MeshStandardMaterial({ color: 0x111318, roughness:0.5 })
-    );
-    gunTip.rotation.x = Math.PI/2;
-    gunTip.position.set(0.35, -0.22, -1.15);
-    gunTip.castShadow = true;
-    gun.add(gunTip);
+    // =========================
+    //   State
+    // =========================
+    let state = "menu"; // menu | running | paused | gameover
+    let hp = 100;
+    let score = 0;
+    let kills = 0;
+    let wave = 1;
+    let nextBossAt = CFG.bossEveryKills;
+    let lastHitAt = -999;
+    let timeAcc = 0;
 
-    camera.add(gun);
-    scene.add(camera);
+    // difficulty scaling
+    function diffMul(){
+      return 1 + (wave-1)*CFG.waveScale;
+    }
 
-    // ========= Enemies =========
-    const enemyGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
-    const enemyMat = new THREE.MeshStandardMaterial({ color: 0x7bff9a, roughness:0.55, metalness:0.05 });
+    // =========================
+    //   Background "scene changes" (every 1000 score)
+    // =========================
+    const themes = [
+      { name:"晨光", fog:0x0b1020, ground:0x11182e, skyTop:0x1d2a66, sun:1.0 },
+      { name:"黃昏", fog:0x160f1c, ground:0x241228, skyTop:0x5a2a3e, sun:0.85 },
+      { name:"夜晚", fog:0x050812, ground:0x0a0f22, skyTop:0x081033, sun:0.65 },
+    ];
+    let themeIndex = 0;
+
+    function applyTheme(i){
+      themeIndex = ((i%themes.length)+themes.length)%themes.length;
+      const t = themes[themeIndex];
+      scene.fog.color.setHex(t.fog);
+      ground.material.color.setHex(t.ground);
+      renderer.setClearColor(new THREE.Color(t.fog), 1);
+      sun.intensity = t.sun;
+    }
+    applyTheme(0);
+
+    function updateThemeByScore(){
+      const idx = Math.floor(score/1000);
+      if(idx !== themeIndex) applyTheme(idx);
+    }
+
+    // =========================
+    //   Bullets
+    // =========================
+    const bullets = [];
+    const bulletGeo = new THREE.SphereGeometry(0.06, 10, 10);
+    const bulletMat = new THREE.MeshStandardMaterial({ color:0xffffff, roughness:0.4, metalness:0.1 });
+
+    function spawnBullet(origin, dir, speed){
+      const m = new THREE.Mesh(bulletGeo, bulletMat);
+      m.castShadow = true;
+      m.position.copy(origin);
+      scene.add(m);
+      bullets.push({ mesh:m, vel:dir.clone().multiplyScalar(speed), life:CFG.bulletLife });
+    }
+
+    // =========================
+    //   Enemies & Boss
+    // =========================
     const enemies = [];
-    const enemyCountBase = 6;
+    const enemyGeo = new THREE.BoxGeometry(0.85, 0.85, 0.85);
+    const enemyMat = new THREE.MeshStandardMaterial({ color:0xffffff, roughness:0.92, metalness:0.0 });
 
-    function spawnEnemy(){
-      const m = new THREE.Mesh(enemyGeo, enemyMat.clone());
+    const bossGeo = new THREE.BoxGeometry(2.0, 2.0, 2.0);
+    const bossMat = new THREE.MeshStandardMaterial({ color:0xffffff, roughness:0.75, metalness:0.05 });
+
+    function randRing(radius){
+      const a = Math.random()*Math.PI*2;
+      return new THREE.Vector3(Math.cos(a)*radius, 0, Math.sin(a)*radius);
+    }
+
+    function spawnEnemy(isBoss=false){
+      const m = new THREE.Mesh(isBoss?bossGeo:enemyGeo, isBoss?bossMat:enemyMat);
       m.castShadow = true;
       m.receiveShadow = true;
-      const angle = Math.random()*Math.PI*2;
-      const r = 10 + Math.random()*22;
-      m.position.set(Math.cos(angle)*r, 0.6, Math.sin(angle)*r);
-      m.userData.hp = 2; // 2 hits
-      m.userData.speed = 1.6 + Math.random()*0.8;
+
+      const r = CFG.enemySpawnRadius + Math.random()*10;
+      const p = randRing(r);
+      m.position.set(p.x, isBoss?1.0:0.55, p.z);
       scene.add(m);
-      enemies.push(m);
+
+      const baseHP = isBoss ? 240 : 40;
+      const hpMul = diffMul();
+      enemies.push({
+        mesh:m,
+        hp: Math.round(baseHP * hpMul),
+        boss:isBoss,
+        speed: (isBoss?1.55:CFG.enemyBaseSpeed) * (0.92 + Math.random()*0.22) * (0.95 + (wave-1)*0.06),
+        touchDmg: isBoss? 18 : 10,
+        knock: isBoss? 0.20 : 0.14,
+      });
     }
 
-    function ensureEnemies(){
-      const target = enemyCountBase + Math.floor(score/15);
-      while(enemies.length < target) spawnEnemy();
-      uiEnemies.textContent = String(enemies.length);
+    function softSpawnLogic(){
+      const target = Math.min(CFG.maxEnemiesSoft, 3 + wave*2);
+      const alive = enemies.filter(e=>e.hp>0).length;
+      if(alive < target){
+        // spawn 1–2
+        const n = Math.random()<0.45 ? 2 : 1;
+        for(let i=0;i<n;i++){
+          if(enemies.length > 120) break;
+          spawnEnemy(false);
+        }
+      }
     }
 
-    // ========= Bullets =========
-    const bulletGeo = new THREE.SphereGeometry(0.10, 10, 10);
-    const bulletMat = new THREE.MeshStandardMaterial({ color: 0xfff1a6, roughness:0.4, metalness:0.05 });
-    const bullets = [];
-
-    function shoot(){
-      if(!running) return;
-      if(timeNow - lastShot < 160) return; // fire rate
-      lastShot = timeNow;
-
-      sfxShoot();
-
-      const b = new THREE.Mesh(bulletGeo, bulletMat);
-      b.castShadow = true;
-
-      // start at gun tip world position
-      const start = new THREE.Vector3(0.35, -0.22, -1.25);
-      start.applyMatrix4(camera.matrixWorld);
-      b.position.copy(start);
-
-      // direction from camera
-      const dir = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize();
-      b.userData.vel = dir.multiplyScalar(26);
-      b.userData.life = 1.3; // seconds
-
-      scene.add(b);
-      bullets.push(b);
-    }
-
-    // ========= UI =========
-    const uiHP = document.getElementById("hp");
-    const uiScore = document.getElementById("score");
-    const uiEnemies = document.getElementById("enemies");
-    const overlay = document.getElementById("overlay");
-    const startBtn = document.getElementById("startBtn");
-    const howBtn = document.getElementById("howBtn");
-    const shootBtn = document.getElementById("shootBtn");
-
-    let score = 0;
-
-    // ========= Touch Controls =========
-    // Left joystick => move
-    const joyWrap = document.getElementById("joyWrap");
-    const joyBase = document.getElementById("joyBase");
-    const joyKnob = document.getElementById("joyKnob");
-
-    let joyActive = false;
+    // =========================
+    //   Input: joystick + look + shoot
+    // =========================
+    const joyWrap = $("joyWrap");
+    const joyKnob = $("joyKnob");
     let joyId = null;
     let joyCenter = {x:0,y:0};
-    let joyVec = {x:0,y:0}; // -1..1
+    let joyVec = new THREE.Vector2(0,0);
 
-    function setJoyKnob(nx, ny){
-      const max = 28;
-      joyKnob.style.transform = `translate(calc(-50% + ${nx*max}px), calc(-50% + ${ny*max}px))`;
+    function setKnob(dx,dy){
+      joyKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
     }
 
-    joyWrap.addEventListener("pointerdown", (e)=>{
-      joyActive = true;
-      joyId = e.pointerId;
-      joyWrap.setPointerCapture(joyId);
-
-      const r = joyBase.getBoundingClientRect();
-      joyCenter.x = r.left + r.width/2;
-      joyCenter.y = r.top + r.height/2;
-
-      joyVec.x = 0; joyVec.y = 0;
-      setJoyKnob(0,0);
-    });
-
-    joyWrap.addEventListener("pointermove", (e)=>{
-      if(!joyActive || e.pointerId !== joyId) return;
-      const dx = e.clientX - joyCenter.x;
-      const dy = e.clientY - joyCenter.y;
-      const max = 36;
-      const nx = THREE.MathUtils.clamp(dx / max, -1, 1);
-      const ny = THREE.MathUtils.clamp(dy / max, -1, 1);
-      joyVec.x = nx;
-      joyVec.y = ny;
-      setJoyKnob(nx, ny);
-    });
-
-    function endJoy(e){
-      if(!joyActive || e.pointerId !== joyId) return;
-      joyActive = false;
+    function joyStart(e){
+      const t = e.changedTouches[0];
+      joyId = t.identifier;
+      const rect = joyWrap.getBoundingClientRect();
+      joyCenter.x = rect.left + rect.width/2;
+      joyCenter.y = rect.top + rect.height/2;
+      joyMove(e);
+    }
+    function joyMove(e){
+      if(joyId===null) return;
+      const t = [...e.changedTouches].find(x=>x.identifier===joyId);
+      if(!t) return;
+      const dx = t.clientX - joyCenter.x;
+      const dy = t.clientY - joyCenter.y;
+      const max = 42;
+      const len = Math.hypot(dx,dy);
+      const k = len>max ? max/len : 1;
+      const nx = dx*k, ny = dy*k;
+      setKnob(nx, ny);
+      joyVec.set(nx/max, ny/max);
+    }
+    function joyEnd(e){
+      const t = [...e.changedTouches].find(x=>x.identifier===joyId);
+      if(!t) return;
       joyId = null;
-      joyVec.x = 0; joyVec.y = 0;
-      setJoyKnob(0,0);
+      joyVec.set(0,0);
+      setKnob(0,0);
     }
-    joyWrap.addEventListener("pointerup", endJoy);
-    joyWrap.addEventListener("pointercancel", endJoy);
-
-    // Right side drag => look
-    let lookActive = false;
-    let lookId = null;
-    let lastLook = {x:0,y:0};
-
-    function isInRightHalf(x){
-      return x > innerWidth*0.45; // keep joystick area safe
-    }
-
-    window.addEventListener("pointerdown", (e)=>{
-      if(e.target === shootBtn || e.target === joyWrap || joyWrap.contains(e.target)) return;
-      if(!isInRightHalf(e.clientX)) return;
-      lookActive = true;
-      lookId = e.pointerId;
-      lastLook.x = e.clientX;
-      lastLook.y = e.clientY;
-    }, {passive:true});
-
-    window.addEventListener("pointermove", (e)=>{
-      if(!lookActive || e.pointerId !== lookId) return;
-      const dx = e.clientX - lastLook.x;
-      const dy = e.clientY - lastLook.y;
-      lastLook.x = e.clientX;
-      lastLook.y = e.clientY;
-
-      const sens = 0.0042;
-      player.yaw   -= dx * sens;
-      player.pitch -= dy * sens;
-      player.pitch = THREE.MathUtils.clamp(player.pitch, -1.15, 1.15);
-    }, {passive:true});
-
-    window.addEventListener("pointerup", (e)=>{
-      if(e.pointerId !== lookId) return;
-      lookActive = false;
-      lookId = null;
-    }, {passive:true});
-
-    // Shoot button press (hold to auto fire)
-    let shooting = false;
-    shootBtn.addEventListener("pointerdown", (e)=>{
-      e.preventDefault();
-      userGestureUnlock();
-      shooting = true;
-      shoot();
-    });
-    window.addEventListener("pointerup", ()=> shooting = false);
-
-    // Desktop keys (bonus)
-    const keys = {};
-    window.addEventListener("keydown", (e)=>{
-      keys[e.key.toLowerCase()] = true;
-      if(e.key.toLowerCase() === "f") shoot();
-    });
-    window.addEventListener("keyup", (e)=> keys[e.key.toLowerCase()] = false);
-
-    // ========= Audio (simple, no external files) =========
-    let audioCtx = null;
-    let musicEnabled = true;
-    let sfxEnabled = true;
-    let musicNode = null;
-
-    function userGestureUnlock(){
-      if(audioCtx) return;
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-
-    function beep(freq=600, ms=80, vol=0.05){
-      if(!audioCtx || !sfxEnabled) return;
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type = "square";
-      o.frequency.value = freq;
-      g.gain.value = vol;
-      o.connect(g);
-      g.connect(audioCtx.destination);
-      o.start();
-      setTimeout(()=>{ try{o.stop();}catch{} }, ms);
-    }
-
-    function sfxShoot(){ beep(720, 55, 0.04); }
-    function sfxHit(){ beep(220, 90, 0.06); }
-    function sfxKill(){ beep(120, 110, 0.06); beep(380, 90, 0.04); }
-
-    function startMusic(){
-      if(!audioCtx || !musicEnabled) return;
-      stopMusic();
-
-      // simple looping pad using two oscillators
-      const o1 = audioCtx.createOscillator();
-      const o2 = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      const f = audioCtx.createBiquadFilter();
-
-      o1.type = "sine";
-      o2.type = "triangle";
-      o1.frequency.value = 110;
-      o2.frequency.value = 165;
-
-      f.type = "lowpass";
-      f.frequency.value = 450;
-
-      g.gain.value = 0.04;
-
-      o1.connect(f); o2.connect(f);
-      f.connect(g);
-      g.connect(audioCtx.destination);
-      o1.start(); o2.start();
-
-      musicNode = { o1, o2, g, f };
-    }
-
-    function stopMusic(){
-      if(!musicNode) return;
-      try{ musicNode.o1.stop(); }catch{}
-      try{ musicNode.o2.stop(); }catch{}
-      musicNode = null;
-    }
-
-    // Music/SFX toggles (tap on HUD pills)
-    // (偷懶小魔法：點右上 pill 切 music、點左上 pill 切 sfx)
-    document.querySelectorAll(".pill")[0].style.pointerEvents = "auto";
-    document.querySelectorAll(".pill")[1].style.pointerEvents = "auto";
-
-    document.querySelectorAll(".pill")[0].addEventListener("click", ()=>{
-      userGestureUnlock();
-      sfxEnabled = !sfxEnabled;
-      beep(500, 70, 0.04);
-    });
-
-    document.querySelectorAll(".pill")[1].addEventListener("click", ()=>{
-      userGestureUnlock();
-      musicEnabled = !musicEnabled;
-      if(musicEnabled) startMusic(); else stopMusic();
-      beep(600, 60, 0.04);
-    });
-
-    // ========= Game Flow =========
-    let running = false;
-    let timeNow = 0;
-    let lastT = performance.now();
-    let lastShot = -999;
-
-    function reset(){
-      player.pos.set(0,1,0);
-      player.vel.set(0,0,0);
-      player.yaw = 0;
-      player.pitch = 0;
-      player.hp = 100;
-      score = 0;
-      uiScore.textContent = "0";
-      uiHP.textContent = "100";
-
-      // clear enemies + bullets
-      for(const e of enemies) scene.remove(e);
-      enemies.length = 0;
-      for(const b of bullets) scene.remove(b);
-      bullets.length = 0;
-
-      ensureEnemies();
-    }
-
-    function dieAndRespawn(){
-      player.hp = 100;
-      uiHP.textContent = String(player.hp);
-      player.pos.set(0,1,0);
-      player.vel.set(0,0,0);
-      beep(140, 120, 0.06);
-    }
-
-    // ========= Helpers =========
-    function clampInArena(p){
-      p.x = THREE.MathUtils.clamp(p.x, -arenaSize+1.2, arenaSize-1.2);
-      p.z = THREE.MathUtils.clamp(p.z, -arenaSize+1.2, arenaSize-1.2);
-    }
-
-    function enemyAI(dt){
-      for(const e of enemies){
-        const toP = new THREE.Vector3().subVectors(player.pos, e.position);
-        const dist = toP.length();
-        toP.normalize();
-
-        // move
-        e.position.addScaledVector(toP, e.userData.speed * dt);
-        e.position.y = 0.6;
-
-        // simple avoid stacking
-        for(const o of enemies){
-          if(o === e) continue;
-          const d = e.position.distanceTo(o.position);
-          if(d < 1.3){
-            const push = new THREE.Vector3().subVectors(e.position, o.position).normalize().multiplyScalar(0.6*dt);
-            e.position.add(push);
-          }
-        }
-
-        // touch damage
-        if(dist < 1.2){
-          player.hp -= 18 * dt;
-          if(Math.random() < 0.06) sfxHit();
-          uiHP.textContent = String(Math.max(0, player.hp|0));
-          if(player.hp <= 0) dieAndRespawn();
-        }
-      }
-    }
-
-    function bulletStep(dt){
-      // move bullets
-      for(let i=bullets.length-1; i>=0; i--){
-        const b = bullets[i];
-        b.position.addScaledVector(b.userData.vel, dt);
-        b.userData.life -= dt;
-
-        // out of arena or expired
-        if(b.userData.life <= 0 ||
-           Math.abs(b.position.x) > arenaSize+6 ||
-           Math.abs(b.position.z) > arenaSize+6){
-          scene.remove(b);
-          bullets.splice(i,1);
-          continue;
-        }
-
-        // hit test
-        for(let j=enemies.length-1; j>=0; j--){
-          const e = enemies[j];
-          if(b.position.distanceTo(e.position) < 0.85){
-            scene.remove(b);
-            bullets.splice(i,1);
-
-            e.userData.hp -= 1;
-            sfxHit();
-            if(e.userData.hp <= 0){
-              sfxKill();
-              score += 10;
-              uiScore.textContent = String(score);
-              scene.remove(e);
-              enemies.splice(j,1);
-              uiEnemies.textContent = String(enemies.length);
-            }else{
-              // flash
-              e.material.emissive = new THREE.Color(0x113311);
-              setTimeout(()=>{ if(e.material) e.material.emissive = new THREE.Color(0x000000); }, 80);
-            }
-            break;
-          }
-        }
-      }
-    }
-
-    function updateCamera(){
-      // apply yaw/pitch
-      camera.rotation.order = "YXZ";
-      camera.rotation.y = player.yaw;
-      camera.rotation.x = player.pitch;
-
-      // third-person-ish but still FPS-feel: keep
+    joyWrap.addEventListener("t
