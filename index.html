@@ -1,1 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no"/>
+<title>Mobile 3D Shooter</title>
+<style>
+  html,body{margin:0;padding:0;overflow:hidden;background:#000;}
+  #ui{
+    position:fixed;bottom:20px;left:0;right:0;
+    display:flex;justify-content:center;gap:20px;
+    z-index:10;
+  }
+  button{
+    padding:16px 22px;
+    font-size:18px;
+    border-radius:12px;
+    border:none;
+  }
+</style>
+</head>
+<body>
 
+<div id="ui">
+  <button id="shoot">🔫 SHOOT</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+
+<script>
+let scene,camera,renderer;
+let enemy;
+let yaw=0,pitch=0;
+let touchX=0,touchY=0;
+
+init();
+animate();
+
+function init(){
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x202020);
+
+  camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,1000);
+  camera.position.y=1.6;
+
+  renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(innerWidth,innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  const light=new THREE.HemisphereLight(0xffffff,0x444444,1);
+  scene.add(light);
+
+  const floor=new THREE.Mesh(
+    new THREE.PlaneGeometry(100,100),
+    new THREE.MeshStandardMaterial({color:0x555555})
+  );
+  floor.rotation.x=-Math.PI/2;
+  scene.add(floor);
+
+  enemy=new THREE.Mesh(
+    new THREE.BoxGeometry(1,1.8,1),
+    new THREE.MeshStandardMaterial({color:0xff3333})
+  );
+  enemy.position.set(0,0.9,-8);
+  scene.add(enemy);
+
+  // touch look
+  window.addEventListener("touchstart",e=>{
+    touchX=e.touches[0].clientX;
+    touchY=e.touches[0].clientY;
+  });
+  window.addEventListener("touchmove",e=>{
+    const dx=e.touches[0].clientX-touchX;
+    const dy=e.touches[0].clientY-touchY;
+    touchX=e.touches[0].clientX;
+    touchY=e.touches[0].clientY;
+    yaw-=dx*0.002;
+    pitch-=dy*0.002;
+    pitch=Math.max(-1.2,Math.min(1.2,pitch));
+  });
+
+  document.getElementById("shoot").onclick=shoot;
+}
+
+function shoot(){
+  const ray=new THREE.Raycaster();
+  ray.setFromCamera(new THREE.Vector2(0,0),camera);
+  const hit=ray.intersectObject(enemy);
+  if(hit.length){
+    enemy.material.color.set(0x00ff00);
+    enemy.position.x=(Math.random()-0.5)*10;
+    enemy.position.z=-5-Math.random()*10;
+  }
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  camera.rotation.order="YXZ";
+  camera.rotation.y=yaw;
+  camera.rotation.x=pitch;
+  renderer.render(scene,camera);
+}
+
+window.onresize=()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+};
+</script>
+</body>
+</html>
