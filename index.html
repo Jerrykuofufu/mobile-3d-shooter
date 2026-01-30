@@ -1,8 +1,8 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Gravity Courier Run</title>
 
 <style>
@@ -14,195 +14,226 @@
   --neon1:#a5f3fc;
   --neon2:#c7d2fe;
 }
-*{box-sizing:border-box;font-family:system-ui,-apple-system,BlinkMacSystemFont}
+*{box-sizing:border-box;font-family:system-ui,-apple-system,BlinkMacSystemFont;}
 body{
   margin:0;
-  background:linear-gradient(180deg,#eef6ff,#f8fbff);
-  color:var(--ink);
+  background:linear-gradient(180deg,#eaf3ff,#f8fbff);
 }
-.wrap{max-width:900px;margin:14px auto;padding:10px}
-h1{margin:8px 0 6px;font-size:34px}
-.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.chip{
-  padding:6px 10px;border-radius:999px;
-  border:1px dashed #c7d2fe;
-  background:#fff;
-  font-size:13px
+.wrap{
+  max-width:900px;
+  margin:14px auto;
+  padding:12px;
 }
 .panel{
   background:var(--card);
   border-radius:18px;
-  padding:12px;
-  box-shadow:0 10px 30px rgba(0,0,0,.08);
+  padding:14px;
+  box-shadow:0 20px 40px rgba(0,0,0,.08);
 }
-.canvasWrap{
-  position:relative;
-  border-radius:16px;
+h1{margin:6px 0 10px;font-size:32px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chip{
+  padding:6px 12px;
+  border-radius:999px;
+  border:2px dashed #d1d5db;
+  background:#fff;
+  font-size:13px;
+}
+.stage{
+  margin:10px 0;
+  border-radius:18px;
   padding:10px;
   background:linear-gradient(135deg,var(--neon1),var(--neon2));
+}
+.stage-inner{
+  background:#f0f7ff;
+  border-radius:14px;
+  padding:8px;
 }
 canvas{
   width:100%;
   height:220px;
-  background:#eaf3ff;
-  border-radius:12px;
   display:block;
-}
-.stats{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0}
-.stats span{color:var(--muted)}
-.controls{display:flex;gap:8px;flex-wrap:wrap}
-button,input{
-  padding:10px 14px;
+  background:#eaf2ff;
   border-radius:12px;
-  border:1px dashed #c7d2fe;
-  background:#fff;
-  font-size:14px
 }
-button.primary{border:2px solid #93c5fd}
-.tip{margin-top:10px;color:var(--muted);font-size:13px}
+.stats{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  margin:10px 0;
+  font-weight:700;
+}
+.controls{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+input{
+  padding:10px;
+  border-radius:12px;
+  border:2px dashed #c7d2fe;
+  width:140px;
+}
+button{
+  padding:10px 16px;
+  border-radius:14px;
+  border:2px dashed #c7d2fe;
+  background:#fff;
+  font-weight:800;
+}
+.small{font-size:13px;color:var(--muted)}
 </style>
 </head>
 
 <body>
 <div class="wrap">
-  <h1>🛵 Gravity Courier Run</h1>
-
-  <div class="chips">
-    <div class="chip">點一下翻轉重力 ✨</div>
-    <div class="chip">手機超順</div>
-    <div class="chip">Combo 越高加分越香 🍕</div>
-  </div>
-
   <div class="panel">
-    <div class="canvasWrap">
-      <canvas id="game" width="800" height="220"></canvas>
+    <h1>🛵 Gravity Courier Run</h1>
+
+    <div class="chips">
+      <div class="chip">點一下翻轉重力 ✨</div>
+      <div class="chip">手機超順</div>
+      <div class="chip">Combo 越高加分越香 🍕</div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-inner">
+        <canvas id="game" width="800" height="220"></canvas>
+      </div>
     </div>
 
     <div class="stats">
-      <span>Score: <b id="score">0</b></span>
-      <span>Best: <b id="best">0</b></span>
-      <span>Combo: <b id="combo">0</b></span>
-      <span>Speed: <b id="speed">1.0</b></span>
+      <div>Score: <span id="score">0</span></div>
+      <div>Best: <span id="best">0</span></div>
+      <div>Combo: <span id="combo">0</span></div>
+      <div>Speed: <span id="speed">1.0</span></div>
     </div>
 
     <div class="controls">
       <input id="name" placeholder="Name (≤12)" maxlength="12">
-      <button id="restart" class="primary">重新開始</button>
+      <button id="restart">重新開始</button>
       <button id="sfx">SFX: ON</button>
       <button id="bgm">BGM: OFF</button>
     </div>
 
-    <div class="tip">
+    <p class="small">
       操作：點一下 / 空白鍵 → 翻轉重力（地板 ⇄ 天花板）<br>
-      提示：重新開始後先「待機」，再點一下才會跑（不會秒開）😺
-    </div>
+      沒有防秒開，點了就跑 😼
+    </p>
   </div>
 </div>
 
 <script>
+/* ================= 基本設定 ================= */
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let gravity = 1;
-let y = 160;
-let vy = 0;
+let running = true;            // ✅ 防秒開已刪：一開始就可跑
+let gravity = 0.6;
+let dir = 1;                   // 1=向下，-1=向上
+let speed = 3;
 let score = 0;
 let combo = 0;
-let speed = 1;
-let running = false;
+let best = Number(localStorage.best || 0);
 
-let obstacles = [];
+const scoreEl = scoreEl = document.getElementById("score");
+const comboEl = document.getElementById("combo");
+const speedEl = document.getElementById("speed");
+document.getElementById("best").textContent = best;
 
-function reset(){
-  y = 160;
-  vy = 0;
-  gravity = 1;
-  score = 0;
-  combo = 0;
-  speed = 1;
-  obstacles = [];
-  running = false;
-  updateUI();
-}
-reset();
+/* ================= 玩家 ================= */
+const player = {
+  x:80,
+  y:canvas.height-40,
+  vy:0,
+  r:10
+};
 
+/* ================= 障礙 ================= */
+let blocks = [];
 function spawn(){
-  obstacles.push({
-    x: canvas.width,
-    gapY: Math.random()*100+60
+  blocks.push({
+    x:canvas.width+40,
+    w:14,
+    h:60+Math.random()*80,
+    top:Math.random()<0.5
   });
 }
 
-function update(){
-  if(!running) return;
-
-  vy += gravity*0.6;
-  y += vy;
-
-  if(y>180){ y=180; vy=0; }
-  if(y<20){ y=20; vy=0; }
-
-  obstacles.forEach(o=>{
-    o.x -= 3*speed;
-    if(!o.passed && o.x<120){
-      o.passed=true;
-      score+=10;
-      combo++;
-      speed = 1 + combo*0.02;
-    }
-  });
-
-  obstacles = obstacles.filter(o=>o.x>-40);
-
-  if(Math.random()<0.02) spawn();
-
-  updateUI();
-}
-
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  // player
-  ctx.fillStyle="#111";
-  ctx.fillRect(80,y-10,20,20);
-
-  // obstacles
-  ctx.fillStyle="#0f172a";
-  obstacles.forEach(o=>{
-    ctx.fillRect(o.x,0,20,o.gapY-30);
-    ctx.fillRect(o.x,o.gapY+30,20,220);
-  });
-}
-
-function loop(){
-  update();
-  draw();
-  requestAnimationFrame(loop);
-}
-loop();
-
+/* ================= 操作 ================= */
 function flip(){
-  if(!running){ running=true; return; }
-  gravity*=-1;
-  vy = -vy*0.6;
+  dir *= -1;
 }
-
-document.addEventListener("click",flip);
+canvas.addEventListener("click",flip);
 document.addEventListener("keydown",e=>{
   if(e.code==="Space") flip();
 });
-
 document.getElementById("restart").onclick=reset;
 
-function updateUI(){
+/* ================= 主迴圈 ================= */
+function reset(){
+  blocks=[];
+  score=0;
+  combo=0;
+  speed=3;
+  dir=1;
+  player.y=canvas.height-40;
+  player.vy=0;
+  running=true;
+}
+function loop(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // player
+  player.vy += gravity*dir;
+  player.y += player.vy;
+  if(player.y<player.r){player.y=player.r;player.vy=0}
+  if(player.y>canvas.height-player.r){player.y=canvas.height-player.r;player.vy=0}
+
+  ctx.fillStyle="#111";
+  ctx.beginPath();
+  ctx.arc(player.x,player.y,player.r,0,Math.PI*2);
+  ctx.fill();
+
+  // blocks
+  if(Math.random()<0.02) spawn();
+  blocks.forEach(b=>{
+    b.x -= speed;
+    ctx.fillRect(b.x,b.top?0:canvas.height-b.h,b.w,b.h);
+
+    if(
+      player.x+player.r>b.x &&
+      player.x-player.r<b.x+b.w &&
+      (b.top ? player.y-player.r<b.h : player.y+player.r>canvas.height-b.h)
+    ){
+      running=false;
+    }
+  });
+  blocks=blocks.filter(b=>b.x>-50);
+
+  if(running){
+    score++;
+    combo++;
+    speed=3+score/400;
+  }else{
+    combo=0;
+  }
+
   scoreEl.textContent=score;
   comboEl.textContent=combo;
   speedEl.textContent=speed.toFixed(1);
-}
 
-const scoreEl=document.getElementById("score");
-const comboEl=document.getElementById("combo");
-const speedEl=document.getElementById("speed");
+  if(score>best){
+    best=score;
+    localStorage.best=best;
+    document.getElementById("best").textContent=best;
+  }
+
+  requestAnimationFrame(loop);
+}
+loop();
 </script>
 </body>
 </html>
