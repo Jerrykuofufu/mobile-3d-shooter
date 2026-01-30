@@ -1,681 +1,108 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Dinosaur Running (3D Shooter)</title>
+  <title>Gravity Courier Run</title>
   <style>
-    :root{
-      --bg:#0b1020;
-      --panel: rgba(10,14,24,.78);
-      --panel2: rgba(255,255,255,.06);
-      --text: rgba(255,255,255,.92);
-      --muted: rgba(255,255,255,.62);
-      --line: rgba(255,255,255,.12);
-      --btn: rgba(255,255,255,.10);
-      --btn2: rgba(255,255,255,.16);
-      --good: rgba(76,255,176,.9);
-      --bad: rgba(255,90,90,.92);
+    :root{ --bg:#f6f7fb; --ink:#111; --muted:#666; --card:#fff; --line:#111; }
+    html,body{ margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif; }
+    .wrap{ max-width:900px; margin:14px auto; padding:0 12px; }
+    h1{ margin:8px 0 6px; font-size:34px; letter-spacing:0.5px; display:flex; align-items:center; gap:10px; }
+    .chip{ font-size:12px; color:#222; background:#e9eefc; padding:6px 10px; border-radius:999px; }
+    .tip{ color:var(--muted); margin:0 0 10px; line-height:1.4; }
+    .panel{ background:var(--card); border:1px solid #e7e7e7; border-radius:18px; padding:14px; box-shadow:0 8px 22px rgba(0,0,0,0.06); }
+    canvas{ width:100%; height:auto; display:block; border:3px solid var(--line); border-radius:18px; background:linear-gradient(#ffffff,#fafafa); touch-action:manipulation; }
+    .bar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:12px; }
+    .stats{ display:flex; gap:14px; flex-wrap:wrap; align-items:center; font-variant-numeric:tabular-nums; }
+    .stats b{ font-weight:800; }
+    .btns{ display:flex; gap:8px; flex-wrap:wrap; }
+    button{
+      padding:10px 14px; border-radius:14px; border:2px solid #111;
+      background:#fff; color:#111; font-size:15px; font-weight:700;
     }
-    html,body{
-      margin:0; padding:0; overflow:hidden; background: var(--bg);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans TC", Arial, sans-serif;
-      touch-action: none;
-      -webkit-user-select:none; user-select:none;
+    button:active{ transform:translateY(1px); }
+    .toggle{ border-style:dashed; }
+    .overlay{
+      position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+      background:rgba(0,0,0,0.45); z-index:30; padding:18px;
     }
-    canvas{ display:block; }
-
-    /* Top HUD bar */
-    #hudTop{
-      position: fixed; top: 10px; left: 10px; right: 10px;
-      display:flex; align-items:center; gap:10px;
-      z-index: 20;
-      pointer-events: none;
+    .card{
+      width:min(560px, 92vw); background:#0f172a; color:#fff;
+      border-radius:20px; padding:18px 16px; box-shadow:0 14px 40px rgba(0,0,0,0.35);
     }
-    .pill{
-      pointer-events: none;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 10px 12px;
-      color: var(--text);
-      backdrop-filter: blur(10px);
-      display:flex; align-items:center; gap:10px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.25);
-      min-height: 18px;
-    }
-    #hpWrap{
-      flex: 1;
-      pointer-events:none;
-      display:flex; align-items:center; gap:10px;
-    }
-    #hpBar{
-      height: 14px;
-      flex: 1;
-      border-radius: 999px;
-      background: rgba(255,255,255,.10);
-      overflow:hidden;
-      border: 1px solid var(--line);
-    }
-    #hpFill{
-      height: 100%;
-      width: 100%;
-      background: linear-gradient(90deg, rgba(255,90,90,.95), rgba(76,255,176,.95));
-      transform-origin: left center;
-    }
-    #hpNum{ font-variant-numeric: tabular-nums; color: var(--text); }
-
-    #statsPill{
-      pointer-events:none;
-      display:flex; gap:12px; align-items:center;
-      white-space: nowrap;
-    }
-    #togPill{
-      margin-left:auto;
-      pointer-events:auto; /* allow clicking toggles */
-      display:flex; gap:10px; align-items:center;
-    }
-    .toggle{
-      pointer-events:auto;
-      background: var(--btn);
-      border: 1px dashed rgba(255,255,255,.25);
-      color: var(--text);
-      padding: 10px 12px;
-      border-radius: 14px;
-      font-weight: 700;
-      font-size: 14px;
-      cursor:pointer;
-    }
-    .toggle:active{ transform: translateY(1px); }
-
-    /* Crosshair */
-    #crosshair{
-      position: fixed; left:50%; top:50%;
-      width: 22px; height: 22px;
-      margin-left:-11px; margin-top:-11px;
-      z-index: 15;
-      pointer-events:none;
-      opacity: .9;
-    }
-    #crosshair:before, #crosshair:after{
-      content:"";
-      position:absolute; left:50%; top:50%;
-      background: rgba(255,255,255,.85);
-      transform: translate(-50%,-50%);
-      border-radius: 2px;
-    }
-    #crosshair:before{ width: 2px; height: 22px; }
-    #crosshair:after{ width: 22px; height: 2px; }
-    #crosshairDot{
-      position:absolute; left:50%; top:50%;
-      width: 4px; height:4px;
-      transform: translate(-50%,-50%);
-      background: rgba(255,255,255,.95);
-      border-radius: 999px;
-      box-shadow: 0 0 10px rgba(255,255,255,.25);
-    }
-
-    /* Bottom controls */
-    #ui{
-      position: fixed;
-      left: 0; right: 0; bottom: 0;
-      z-index: 20;
-      display:flex;
-      justify-content: space-between;
-      padding: 14px 14px 18px;
-      gap: 12px;
-      pointer-events:none;
-    }
-
-    /* Joystick */
-    #joyWrap{
-      pointer-events:auto;
-      width: 170px;
-      height: 170px;
-      position: relative;
-      border-radius: 999px;
-      background: rgba(255,255,255,.06);
-      border: 1px solid var(--line);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 10px 30px rgba(0,0,0,.2);
-      touch-action:none;
-    }
-    #joyBase{
-      position:absolute; inset: 0;
-      display:flex; align-items:center; justify-content:center;
-    }
-    #joyRing{
-      width: 120px; height: 120px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(0,0,0,.08);
-    }
-    #joyKnob{
-      position:absolute;
-      width: 64px; height: 64px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.16);
-      border: 1px solid rgba(255,255,255,.22);
-      box-shadow: 0 10px 22px rgba(0,0,0,.25);
-      transform: translate(0,0);
-    }
-
-    /* Right buttons */
-    #rightPad{
-      pointer-events:auto;
-      display:flex; flex-direction: column;
-      align-items:flex-end;
-      gap: 10px;
-      width: 200px;
-    }
-    .btnRow{
-      display:flex; gap: 10px; justify-content:flex-end;
-      width: 100%;
-    }
-    .btn{
-      pointer-events:auto;
-      background: var(--btn);
-      border: 1px solid rgba(255,255,255,.18);
-      color: var(--text);
-      padding: 12px 14px;
-      border-radius: 16px;
-      font-weight: 800;
-      font-size: 14px;
-      cursor:pointer;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 10px 30px rgba(0,0,0,.18);
-    }
-    .btn.secondary{
-      border-style: dashed;
-      border-color: rgba(255,255,255,.25);
-      background: rgba(255,255,255,.08);
-    }
-    .btn:active{ transform: translateY(1px); }
-
-    #shootBtn{
-      width: 200px;
-      height: 62px;
-      font-size: 18px;
-      border-radius: 20px;
-      background: rgba(255,255,255,.14);
-    }
-
-    /* Weapons */
-    #weapons{
-      display:flex; gap:10px; justify-content:flex-end;
-      width: 100%;
-    }
-    .weapon{
-      flex: 1;
-      text-align:center;
-      padding: 10px 10px;
-      border-radius: 14px;
-      background: rgba(255,255,255,.08);
-      border: 1px dashed rgba(255,255,255,.25);
-      font-weight: 900;
-      color: var(--text);
-    }
-    .weapon.active{
-      background: rgba(76,255,176,.14);
-      border: 1px solid rgba(76,255,176,.45);
-      box-shadow: 0 0 0 2px rgba(76,255,176,.10) inset;
-    }
-
-    /* Overlay start */
-    #overlay{
-      position: fixed; inset: 0;
-      z-index: 30;
-      display:flex;
-      align-items:center; justify-content:center;
-      padding: 18px;
-      background: radial-gradient(1200px 600px at 50% 30%, rgba(255,255,255,.08), rgba(0,0,0,.65));
-      backdrop-filter: blur(8px);
-    }
-    #card{
-      width: min(680px, 100%);
-      background: rgba(10,14,24,.86);
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 22px;
-      padding: 18px 18px 16px;
-      color: var(--text);
-      box-shadow: 0 30px 90px rgba(0,0,0,.45);
-    }
-    #card h1{
-      margin: 0 0 10px;
-      font-size: 22px;
-      letter-spacing: .4px;
-    }
-    #card p{
-      margin: 6px 0;
-      color: var(--muted);
-      line-height: 1.35;
-      font-weight: 650;
-    }
-    .row{
-      display:flex; gap: 10px; margin-top: 14px;
-    }
-    #nameInput{
-      flex: 1;
-      padding: 14px 14px;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
-      font-size: 16px;
-      outline:none;
-    }
-    #startBtn{
-      padding: 14px 18px;
-      border-radius: 16px;
-      border: none;
-      background: rgba(255,255,255,.92);
-      color: rgba(0,0,0,.9);
-      font-weight: 1000;
-      font-size: 16px;
-      cursor:pointer;
-    }
-    #tiny{
-      margin-top: 10px;
-      font-size: 12px;
-      color: rgba(255,255,255,.55);
-    }
-
-    /* Damage flash */
-    #flash{
-      position: fixed; inset: 0;
-      z-index: 25;
-      pointer-events:none;
-      background: rgba(255,80,80,.0);
-      transition: background .12s ease;
-    }
-
-    /* Prevent selection/callout */
-    *{ -webkit-tap-highlight-color: transparent; }
+    .card h2{ margin:0 0 8px; font-size:22px; }
+    .card p{ margin:6px 0; line-height:1.5; color:#e5e7eb; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+    .primary{ background:#fff; color:#111; border-color:#fff; }
+    .secondary{ background:transparent; color:#fff; border-color:rgba(255,255,255,0.55); }
+    .tiny{ font-size:12px; color:#cbd5e1; margin-top:10px; }
+    .hintline{ margin-top:10px; color:#444; font-size:13px; }
+    .kbd{ font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; background:#111; color:#fff; padding:2px 6px; border-radius:8px; font-size:12px; }
   </style>
 </head>
 <body>
-  <div id="flash"></div>
+  <div class="wrap">
+    <h1>🛵 Gravity Courier Run <span class="chip">點一下翻轉重力｜手機超順</span></h1>
+    <p class="tip">操作：點一下 / 空白鍵 = 重力翻轉（地板⇄天花板）｜長按螢幕不需要，純單點節奏 😼</p>
 
-  <div id="hudTop">
-    <div class="pill" id="hpWrap">
-      <span style="font-weight:1000;">❤️</span>
-      <div id="hpBar"><div id="hpFill"></div></div>
-      <div id="hpNum">100</div>
-    </div>
+    <div class="panel">
+      <canvas id="c" width="900" height="360" aria-label="game canvas"></canvas>
 
-    <div class="pill" id="statsPill">
-      <span>🎯 分數：<b id="score">0</b></span>
-      <span>💀 擊殺：<b id="kills">0</b></span>
-      <span>🌊 波次：<b id="wave">1</b></span>
-      <span>👾 敵人：<b id="enemies">0</b></span>
-      <span>🔫 <b id="weaponName">手槍</b></span>
-    </div>
-
-    <div class="pill" id="togPill">
-      <button class="toggle" id="sfxToggle">🔊 音效：開</button>
-      <button class="toggle" id="musicToggle">🎵 音樂：開</button>
-      <button class="toggle" id="fsBtn">⛶ 全螢幕</button>
+      <div class="bar">
+        <div class="stats">
+          <div>Score: <b id="score">0</b></div>
+          <div>Best: <b id="best">0</b></div>
+          <div>Combo: <b id="combo">0</b></div>
+          <div>Speed: <b id="spd">1.0</b></div>
+        </div>
+        <div class="btns">
+          <button id="restart">重新開始</button>
+          <button id="sfxBtn" class="toggle">SFX: ON</button>
+          <button id="bgmBtn" class="toggle">BGM: OFF</button>
+        </div>
+      </div>
+      <div class="hintline">小技巧：貼著障礙物擦過（不要撞到）會更容易累積 Combo，加分很香 🍕</div>
     </div>
   </div>
 
-  <div id="crosshair"><div id="crosshairDot"></div></div>
-
-  <div id="ui">
-    <div id="joyWrap" aria-label="joystick">
-      <div id="joyBase">
-        <div id="joyRing"></div>
-      </div>
-      <div id="joyKnob"></div>
-    </div>
-
-    <div id="rightPad">
-      <div class="btnRow">
-        <button class="btn secondary" id="pauseBtn">⏸ 暫停</button>
-        <button class="btn secondary" id="restartBtn">↻ 重新開始</button>
-      </div>
-
-      <div id="weapons">
-        <button class="weapon active" id="wPistol">手槍</button>
-        <button class="weapon" id="wSMG">機槍</button>
-        <button class="weapon" id="wShotgun">霰彈</button>
-      </div>
-
-      <button class="btn" id="shootBtn">🔫 SHOOT</button>
-    </div>
-  </div>
-
-  <div id="overlay">
-    <div id="card">
-      <h1>🦖 Dinosaur Running (3D Shooter)</h1>
-      <p>📱 左下搖桿移動｜右半邊滑動轉視角｜按 SHOOT 開火</p>
-      <p>😼 方塊敵人會追你｜每 15 擊殺會出 Boss！</p>
+  <div class="overlay" id="overlay">
+    <div class="card">
+      <h2>🛵 Gravity Courier Run</h2>
+      <p>你是屋頂外送員，靠「重力翻轉」閃障礙、吃披薩。</p>
+      <p>✅ 點一下 / <span class="kbd">Space</span>：重力翻轉<br/>✅ 靠近障礙擦過：Combo + 加分</p>
       <div class="row">
-        <input id="nameInput" maxlength="12" value="Milo" />
-        <button id="startBtn">開始</button>
+        <button class="primary" id="startBtn">開始</button>
+        <button class="secondary" id="howBtn">再看一次說明</button>
       </div>
-      <div id="tiny">提示：手機瀏覽器需要「第一次點擊」才允許播放音效/音樂（系統規則）。</div>
+      <div class="tiny">提示：手機瀏覽器通常要先點一次畫面，音效才會允許播放（系統規則）。</div>
     </div>
   </div>
 
-  <script type="module">
-    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+<script>
+(() => {
+  // =======================
+  // Helpers
+  // =======================
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+  const rand = (a,b)=>a+Math.random()*(b-a);
+  const chance = (p)=>Math.random()<p;
 
-    // =========================
-    // Safe state (Fixes “開始不了 / 重複啟動 / 亂跳 / 卡死”)
-    // =========================
-    let state = "idle";      // idle | running | paused | gameover
-    let gameStarted = false;
-    let rafId = null;
+  // =======================
+  // Canvas + UI
+  // =======================
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d', { alpha: false });
 
-    // =========================
-    // DOM
-    // =========================
-    const scoreEl = document.getElementById("score");
-    const killsEl = document.getElementById("kills");
-    const waveEl = document.getElementById("wave");
-    const enemiesEl = document.getElementById("enemies");
-    const weaponNameEl = document.getElementById("weaponName");
-    const hpNumEl = document.getElementById("hpNum");
-    const hpFillEl = document.getElementById("hpFill");
-    const overlay = document.getElementById("overlay");
-    const startBtn = document.getElementById("startBtn");
-    const nameInput = document.getElementById("nameInput");
-    const pauseBtn = document.getElementById("pauseBtn");
-    const restartBtn = document.getElementById("restartBtn");
-    const shootBtn = document.getElementById("shootBtn");
-    const sfxToggleBtn = document.getElementById("sfxToggle");
-    const musicToggleBtn = document.getElementById("musicToggle");
-    const fsBtn = document.getElementById("fsBtn");
-    const flash = document.getElementById("flash");
+  const scoreEl = document.getElementById('score');
+  const bestEl  = document.getElementById('best');
+  const comboEl = document.getElementById('combo');
+  const spdEl   = document.getElementById('spd');
 
-    const wPistolBtn = document.getElementById("wPistol");
-    const wSMGBtn = document.getElementById("wSMG");
-    const wShotgunBtn = document.getElementById("wShotgun");
+  const restartBtn = document.getElementById('restart');
+  const sfxBtn = document.getElementById('sfxBtn');
+  const bgmBtn = document.getElementById('bgmBtn');
 
-    // =========================
-    // Audio (WebAudio, no files) + mobile unlock
-    // =========================
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    let audioCtx = null;
-
-    let sfxEnabled = true;
-    let musicEnabled = true;
-
-    // Music nodes
-    let musicGain = null;
-    let musicNodes = [];
-
-    function userGestureUnlock(){
-      try{
-        if (!AudioCtx) return;
-        if (!audioCtx) audioCtx = new AudioCtx();
-        if (audioCtx.state === "suspended") audioCtx.resume();
-      }catch(e){}
-    }
-
-    function beep(freq=600, ms=60, vol=0.06, type="square"){
-      if (!sfxEnabled) return;
-      if (!audioCtx) return;
-      const t0 = audioCtx.currentTime;
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type = type;
-      o.frequency.setValueAtTime(freq, t0);
-      g.gain.setValueAtTime(vol, t0);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + ms/1000);
-      o.connect(g);
-      g.connect(audioCtx.destination);
-      o.start(t0);
-      o.stop(t0 + ms/1000);
-    }
-
-    function noiseBurst(ms=120, vol=0.06){
-      if (!sfxEnabled) return;
-      if (!audioCtx) return;
-      const bufferSize = Math.max(1, Math.floor(audioCtx.sampleRate * (ms/1000)));
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i=0;i<bufferSize;i++){
-        data[i] = (Math.random()*2-1) * (1 - i/bufferSize);
-      }
-      const src = audioCtx.createBufferSource();
-      src.buffer = buffer;
-      const g = audioCtx.createGain();
-      g.gain.value = vol;
-      src.connect(g);
-      g.connect(audioCtx.destination);
-      src.start();
-    }
-
-    function startMusic(){
-      if (!musicEnabled) return;
-      if (!audioCtx) return;
-      stopMusic();
-
-      musicGain = audioCtx.createGain();
-      musicGain.gain.value = 0.06;
-      musicGain.connect(audioCtx.destination);
-
-      // Cute 8-bit loop (2 oscillators + simple rhythm)
-      const baseTime = audioCtx.currentTime + 0.02;
-      const bpm = 118;
-      const beat = 60/bpm;
-
-      const seq = [
-        523.25, 659.25, 783.99, 659.25,
-        587.33, 739.99, 880.00, 739.99,
-        523.25, 659.25, 783.99, 659.25,
-        493.88, 587.33, 659.25, 587.33,
-      ];
-
-      // schedule ~8 seconds ahead, and loop via interval
-      function schedule(at){
-        const o1 = audioCtx.createOscillator();
-        const o2 = audioCtx.createOscillator();
-        const g1 = audioCtx.createGain();
-        const g2 = audioCtx.createGain();
-
-        o1.type = "square";
-        o2.type = "triangle";
-
-        g1.gain.value = 0.0;
-        g2.gain.value = 0.0;
-
-        o1.connect(g1); g1.connect(musicGain);
-        o2.connect(g2); g2.connect(musicGain);
-
-        const dur = seq.length * (beat/2); // 16 steps
-        o1.start(at);
-        o2.start(at);
-
-        for (let i=0;i<seq.length;i++){
-          const t = at + i*(beat/2);
-          const f = seq[i];
-
-          // melody
-          o1.frequency.setValueAtTime(f, t);
-          g1.gain.setValueAtTime(0.0, t);
-          g1.gain.linearRampToValueAtTime(0.18, t+0.02);
-          g1.gain.exponentialRampToValueAtTime(0.0001, t+(beat/2)*0.92);
-
-          // bass-ish
-          o2.frequency.setValueAtTime(f/2, t);
-          g2.gain.setValueAtTime(0.0, t);
-          g2.gain.linearRampToValueAtTime(0.12, t+0.02);
-          g2.gain.exponentialRampToValueAtTime(0.0001, t+(beat/2)*0.92);
-        }
-
-        o1.stop(at + dur + 0.02);
-        o2.stop(at + dur + 0.02);
-
-        musicNodes.push(o1,o2,g1,g2);
-        return dur;
-      }
-
-      let loopDur = schedule(baseTime);
-      // repeat
-      const intMs = Math.floor(loopDur*1000);
-      const intervalId = setInterval(()=>{
-        if (!musicEnabled || state !== "running" || !audioCtx) return;
-        schedule(audioCtx.currentTime + 0.03);
-      }, intMs);
-
-      musicNodes.push({intervalId});
-    }
-
-    function stopMusic(){
-      try{
-        for (const n of musicNodes){
-          if (n && n.intervalId) clearInterval(n.intervalId);
-        }
-        musicNodes = [];
-        if (musicGain){
-          musicGain.disconnect();
-          musicGain = null;
-        }
-      }catch(e){}
-    }
-
-    function updateAudioToggles(){
-      sfxToggleBtn.textContent = sfxEnabled ? "🔊 音效：開" : "🔇 音效：關";
-      musicToggleBtn.textContent = musicEnabled ? "🎵 音樂：開" : "🎵 音樂：關";
-    }
-
-    sfxToggleBtn.addEventListener("click", ()=>{
-      userGestureUnlock();
-      sfxEnabled = !sfxEnabled;
-      updateAudioToggles();
-      if (sfxEnabled) beep(700,50,0.05);
-    });
-
-    musicToggleBtn.addEventListener("click", ()=>{
-      userGestureUnlock();
-      musicEnabled = !musicEnabled;
-      updateAudioToggles();
-      if (!musicEnabled) stopMusic();
-      else if (state === "running") startMusic();
-    });
-
-    // Fullscreen
-    fsBtn.addEventListener("click", async ()=>{
-      userGestureUnlock();
-      try{
-        if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
-        else await document.exitFullscreen();
-      }catch(e){}
-    });
-
-    // =========================
-    // Three.js Basics
-    // =========================
-    const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false });
-    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-    renderer.setSize(innerWidth, innerHeight);
-    renderer.shadowMap.enabled = true;
-    document.body.appendChild(renderer.domElement);
-
-    const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x0b1020, 10, 42);
-    scene.background = new THREE.Color(0x0b1020);
-
-    const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.05, 120);
-
-    // Lighting
-    const hemi = new THREE.HemisphereLight(0xbfd6ff, 0x223344, 0.7);
-    scene.add(hemi);
-
-    const dir = new THREE.DirectionalLight(0xffffff, 0.9);
-    dir.position.set(6, 10, 4);
-    dir.castShadow = true;
-    dir.shadow.mapSize.set(1024,1024);
-    dir.shadow.camera.left = -18;
-    dir.shadow.camera.right = 18;
-    dir.shadow.camera.top = 18;
-    dir.shadow.camera.bottom = -18;
-    scene.add(dir);
-
-    // Ground
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(200,200),
-      new THREE.MeshStandardMaterial({ color: 0x0e172a, roughness: 0.95, metalness: 0.0 })
-    );
-    ground.rotation.x = -Math.PI/2;
-    ground.receiveShadow = true;
-    scene.add(ground);
-
-    // Some “buildings”
-    const decoGroup = new THREE.Group();
-    scene.add(decoGroup);
-    const decoMat = new THREE.MeshStandardMaterial({ color: 0x111c33, roughness:0.9 });
-    for (let i=0;i<26;i++){
-      const h = 0.8 + Math.random()*4.5;
-      const m = new THREE.Mesh(new THREE.BoxGeometry(1.6, h, 1.6), decoMat);
-      const ang = Math.random()*Math.PI*2;
-      const r = 16 + Math.random()*26;
-      m.position.set(Math.cos(ang)*r, h/2, Math.sin(ang)*r);
-      m.castShadow = true;
-      m.receiveShadow = true;
-      decoGroup.add(m);
-    }
-
-    // =========================
-    // Player + Camera control
-    // =========================
-    const player = {
-      pos: new THREE.Vector3(0,0,0),
-      vel: new THREE.Vector3(0,0,0),
-      hp: 100,
-      maxHp: 100,
-      speed: 6.2,
-      radius: 0.45
-    };
-
-    // Player body (cute dino-ish “helmet”)
-    const playerMesh = new THREE.Group();
-    scene.add(playerMesh);
-
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x22e0a3, roughness:0.55, metalness:0.05 });
-    const headMat = new THREE.MeshStandardMaterial({ color: 0x1ad49b, roughness:0.55, metalness:0.05 });
-
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 0.7, 6, 10), bodyMat);
-    body.castShadow = true;
-    body.position.y = 0.95;
-    playerMesh.add(body);
-
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 14, 14), headMat);
-    head.castShadow = true;
-    head.position.set(0.1, 1.45, 0.18);
-    playerMesh.add(head);
-
-    // tiny “snout”
-    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.22,0.16,0.24), headMat);
-    snout.castShadow = true;
-    snout.position.set(0.26, 1.38, 0.45);
-    playerMesh.add(snout);
-
-    // Camera angles
-    let yaw = 0;     // left-right
-    let pitch = -0.05; // up-down
-    const pitchMin = -0.75;
-    const pitchMax = 0.55;
-
-    // Right-side drag to rotate
-    let lookTouchId = null;
-    let lastLookX = 0;
-    let lastLookY = 0;
-    let draggingLook = false;
-
-    function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
-
-    function updateCamera(){
-      // first-person-ish but slightly behind
-      const camHeight = 1.55;
-      const back = 3.5;
-
-      const forward = new THREE.Vector3(
-        Math.sin(yaw) * Math.cos(pitch),
-        Math.sin(pitch),
-        Math.cos(yaw) * Math.cos(pitch)
-      ).normalize();
-
-      
+  const overlay = document.getElementById('overlay');
+  const startBtn = document.getElementById('startBtn');
+  const howBtn
