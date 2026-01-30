@@ -1,763 +1,195 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Gravity Courier Run</title>
-  <style>
-    :root{
-      --bg1:#e9f2ff;
-      --bg2:#f7fbff;
-      --ink:#0f172a;
-      --muted:#64748b;
-      --card:rgba(255,255,255,.78);
-      --stroke:rgba(15,23,42,.18);
-      --shadow: 0 18px 60px rgba(2,8,23,.12);
-      --neon1: rgba(0,255,255,.35);
-      --neon2: rgba(255,0,200,.25);
-      --neon3: rgba(100,255,100,.22);
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans TC", Arial;
-      color:var(--ink);
-      background: radial-gradient(1200px 700px at 20% 0%, #dff3ff 0%, transparent 55%),
-                  radial-gradient(1000px 600px at 90% 10%, #ffe0fb 0%, transparent 55%),
-                  linear-gradient(180deg,var(--bg1),var(--bg2));
-      overflow-x:hidden;
-    }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
+<title>Gravity Courier Run</title>
 
-    .wrap{max-width:980px;margin:16px auto;padding:0 14px}
-    .hero{
-      display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
-    }
-    .title{
-      font-size:44px;line-height:1.05;margin:0;
-      letter-spacing:.5px;
-    }
-    .badgeRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .chip{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:10px 12px;border-radius:999px;
-      border:1px dashed rgba(15,23,42,.35);
-      background:rgba(255,255,255,.55);
-      backdrop-filter: blur(8px);
-      color:#0b1220;
-      font-weight:700;
-      box-shadow: 0 10px 30px rgba(2,8,23,.08);
-    }
-    .chip small{font-weight:600;color:var(--muted)}
-    .panel{
-      margin-top:14px;
-      background:var(--card);
-      border:1px solid var(--stroke);
-      border-radius:22px;
-      box-shadow:var(--shadow);
-      overflow:hidden;
-      position:relative;
-    }
-    .panel::before{
-      content:"";
-      position:absolute;inset:-2px;
-      background:
-        radial-gradient(600px 260px at 20% 0%, var(--neon2), transparent 60%),
-        radial-gradient(700px 260px at 80% 10%, var(--neon1), transparent 60%),
-        radial-gradient(520px 240px at 50% 110%, var(--neon3), transparent 65%);
-      opacity:.9;
-      pointer-events:none;
-    }
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7dd3fc">
 
-    .gameWrap{padding:16px;position:relative}
-    .frame{
-      border-radius:22px;
-      padding:14px;
-      background: rgba(255,255,255,.52);
-      border:1px solid rgba(15,23,42,.16);
-      position:relative;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.35);
-    }
-    .frame::after{
-      content:"";
-      position:absolute;inset:10px;
-      border-radius:18px;
-      border:2px solid rgba(255,255,255,.35);
-      box-shadow:
-        0 0 0 1px rgba(15,23,42,.10),
-        0 0 24px rgba(0,255,255,.18),
-        0 0 22px rgba(255,0,200,.10);
-      pointer-events:none;
-    }
-    canvas{
-      width:100%;
-      height:auto;
-      display:block;
-      border-radius:16px;
-      background: linear-gradient(180deg,#eaf6ff,#f7fbff);
-    }
-
-    .stats{
-      display:flex;gap:14px;flex-wrap:wrap;
-      padding:12px 2px 0 2px;
-      font-weight:800;
-    }
-    .stats span{color:var(--muted);font-weight:700;margin-right:6px}
-    .btnRow{
-      display:flex;gap:10px;flex-wrap:wrap;align-items:center;
-      padding-top:12px;
-    }
-    input{
-      padding:12px 14px;border-radius:14px;border:1px solid rgba(15,23,42,.18);
-      outline:none;background:rgba(255,255,255,.72);
-      font-size:16px;min-width:200px;
-    }
-    button{
-      padding:12px 16px;border-radius:14px;border:1px solid rgba(15,23,42,.18);
-      background:rgba(255,255,255,.82);
-      font-weight:900;
-      font-size:16px;
-      box-shadow: 0 10px 28px rgba(2,8,23,.10);
-      cursor:pointer;
-    }
-    button.toggle{
-      border:2px dashed rgba(15,23,42,.35);
-      background: rgba(255,255,255,.62);
-    }
-    .help{
-      padding:10px 2px 0 2px;
-      color:var(--muted);
-      font-weight:650;
-      line-height:1.45;
-    }
-
-    .lb{
-      margin-top:14px;
-      background:rgba(255,255,255,.68);
-      border:1px solid rgba(15,23,42,.16);
-      border-radius:18px;
-      padding:12px 14px;
-    }
-    .lb h3{margin:0 0 8px 0;font-size:18px}
-    .grid{
-      display:grid;
-      grid-template-columns: 50px 1fr 120px;
-      gap:8px;
-      font-weight:800;
-      align-items:center;
-    }
-    .grid .head{color:var(--muted);font-weight:900}
-    .row{padding:6px 0;border-top:1px dashed rgba(15,23,42,.18)}
-    .muted{color:var(--muted);font-weight:700}
-    .pill{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:8px 10px;border-radius:999px;
-      border:1px solid rgba(15,23,42,.14);
-      background:rgba(255,255,255,.6);
-      font-weight:900;
-    }
-
-    /* 手機防誤觸：按鈕更大 */
-    @media (max-width:520px){
-      .title{font-size:40px}
-      input{flex:1;min-width:0}
-      button{flex:1}
-    }
-  </style>
+<style>
+:root{
+  --bg:#eef6ff;
+  --card:#ffffff;
+  --ink:#111;
+  --muted:#6b7280;
+  --neon1:#a5f3fc;
+  --neon2:#c7d2fe;
+}
+*{box-sizing:border-box;font-family:system-ui,-apple-system;}
+body{
+  margin:0;
+  background:linear-gradient(180deg,#eaf3ff,#f8fbff);
+  color:var(--ink);
+}
+.wrap{max-width:900px;margin:auto;padding:16px;}
+h1{font-size:34px;margin:6px 0 10px;}
+.badge{
+  display:inline-block;padding:6px 12px;
+  border-radius:999px;background:#fff;
+  border:1px dashed #c7d2fe;margin:4px 4px;
+}
+.panel{
+  background:var(--card);
+  border-radius:24px;
+  padding:16px;
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,.9),
+    0 0 40px rgba(165,243,252,.7),
+    inset 0 0 30px rgba(199,210,254,.4);
+}
+canvas{
+  width:100%;
+  height:auto;
+  border-radius:18px;
+  background:linear-gradient(180deg,#f8fbff,#eef6ff);
+}
+.stats{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+button{
+  padding:10px 14px;border-radius:14px;
+  border:2px dashed #c7d2fe;
+  background:#fff;font-weight:700;
+}
+button.primary{border-style:solid;border-color:#93c5fd;}
+.small{font-size:13px;color:var(--muted);}
+</style>
 </head>
+
 <body>
-  <div class="wrap">
-    <div class="hero">
-      <h1 class="title">🛵 Gravity Courier Run</h1>
-      <div class="badgeRow">
-        <div class="chip">點一下翻轉重力 <small>| 手機超順</small> <span>✨</span></div>
-        <div class="chip">貼著柱子飛越更容易累積 Combo <small>（別撞到）</small> 🍕</div>
-      </div>
+<div class="wrap">
+  <h1>🛵 Gravity Courier Run</h1>
+
+  <div class="badge">點一下翻轉重力 ✨</div>
+  <div class="badge">手機超順</div>
+  <div class="badge">Combo 越高加分越香 🍕</div>
+
+  <div class="panel">
+    <canvas id="game" width="800" height="240"></canvas>
+
+    <div class="stats">
+      <div>Score: <b id="score">0</b></div>
+      <div>Best: <b id="best">0</b></div>
+      <div>Combo: <b id="combo">0</b></div>
+      <div>Speed: <b id="speed">1.0</b></div>
     </div>
 
-    <div class="panel">
-      <div class="gameWrap">
-        <div class="frame">
-          <canvas id="c" width="900" height="340"></canvas>
-        </div>
+    <div class="btns">
+      <input id="name" placeholder="Name (≤12)" maxlength="12">
+      <button class="primary" id="restart">重新開始</button>
+      <button id="sfx">SFX: ON</button>
+      <button id="bgm">BGM: ON</button>
+    </div>
 
-        <div class="stats">
-          <div><span>Score:</span><b id="score">0</b></div>
-          <div><span>Best:</span><b id="best">0</b></div>
-          <div><span>Combo:</span><b id="combo">0</b></div>
-          <div><span>Speed:</span><b id="speed">1.0</b></div>
-          <div class="pill"><span>Scene:</span><b id="scene">Morning</b></div>
-        </div>
-
-        <div class="btnRow">
-          <input id="name" maxlength="12" placeholder="Name (≤12)" />
-          <button id="restart">重新開始</button>
-          <button id="sfxBtn" class="toggle">SFX: ON</button>
-          <button id="bgmBtn" class="toggle">BGM: OFF</button>
-          <button id="submit" title="Game Over 後送出">送出世界排行</button>
-        </div>
-
-        <div class="help">
-          <b>玩法：</b>點一下（或空白鍵）就把重力翻過去（地板⇄天花板），避開柱子！<br/>
-          <span class="muted">提示：</span>重新開始後會先「待機」，再點一下才開始跑（不會秒開）。<br/>
-          <span class="muted">手機聲音規則：</span>第一次要先點一下畫面才允許播放（瀏覽器規則）。
-        </div>
-
-        <div class="lb">
-          <h3>🏆 世界排名 <small class="muted" id="rankHint">載入中…</small></h3>
-          <div class="grid">
-            <div class="head">#</div><div class="head">名字</div><div class="head" style="text-align:right">分數</div>
-          </div>
-          <div id="lbRows" class="muted" style="padding-top:8px">—</div>
-          <div class="muted" style="padding-top:8px">
-            你的世界排名：<b id="myRank">-</b>（同名只顯示最高分）
-          </div>
-        </div>
-
-      </div>
+    <div class="small" style="margin-top:8px">
+      操作：點一下 / 空白鍵 → 翻轉重力（地板 ↔ 天花板）<br>
+      提示：貼著柱子飛過（別撞到）更容易累積 Combo
     </div>
   </div>
+</div>
 
 <script>
-/* =========================================================
-   ✅ 把這裡換成你 Apps Script 的網址（不然世界排行會消失）
-   （用你恐龍那個排行榜同一支就行）
-========================================================= */
-const LEADERBOARD_URL = ""; // ←←← 貼上你的 Apps Script 網址
+/* ========= Canvas ========= */
+const c = game, ctx = c.getContext("2d");
 
-/* ===================== Canvas & basics ===================== */
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d', { alpha: false });
+/* ========= State ========= */
+let y=180, vy=0, gravity=0.6, inverted=false;
+let pipes=[], frame=0;
+let score=0, combo=0, speed=1;
+let running=false;
+let best=+localStorage.best||0;
+bestEl.textContent=best;
 
-const scoreEl = document.getElementById('score');
-const bestEl  = document.getElementById('best');
-const comboEl = document.getElementById('combo');
-const speedEl = document.getElementById('speed');
-const sceneEl = document.getElementById('scene');
+/* ========= Audio ========= */
+let sfxOn=true,bgmOn=true;
+const flipSfx=new Audio("https://assets.mixkit.co/sfx/preview/mixkit-arcade-jump-coin-216.wav");
+const bgm=new Audio("https://assets.mixkit.co/music/preview/mixkit-chill-gaming-123.mp3");
+bgm.loop=true;
 
-const nameEl = document.getElementById('name');
-const restartBtn = document.getElementById('restart');
-const sfxBtn = document.getElementById('sfxBtn');
-const bgmBtn = document.getElementById('bgmBtn');
-const submitBtn = document.getElementById('submit');
+/* ========= Controls ========= */
+addEventListener("pointerdown", flip);
+addEventListener("keydown", e=>{if(e.code==="Space")flip();});
 
-const lbRows = document.getElementById('lbRows');
-const myRankEl = document.getElementById('myRank');
-const rankHint = document.getElementById('rankHint');
-
-const nameKey = "gcr_name";
-nameEl.value = (localStorage.getItem(nameKey) || "Jerry").slice(0,12);
-
-let W = canvas.width, H = canvas.height;
-function resize(){
-  // 依容器寬縮放，canvas 內部座標不變（較穩）
-  // 外觀用 CSS 控
-}
-resize();
-
-/* ===================== Game state ===================== */
-let state = "idle"; // idle | running | over
-let tPrev = performance.now();
-
-let score = 0;
-let best  = Number(localStorage.getItem("gcr_best") || 0);
-bestEl.textContent = best;
-
-let combo = 0;
-let speed = 1.0;
-
-let scene = 0; // 0 morning, 1 dusk, 2 night
-
-// 角色：固定 x，y 在兩條 lane 間切換（地板/天花板）
-const player = {
-  x: 130,
-  y: 0,
-  yNow: 0,
-  yTarget: 0,
-  lane: 1,        // 1 = 地板, -1 = 天花板
-  r: 14,
-  trail: []
-};
-
-// lane y 定義
-const laneY = {
-  floor: () => H - 66,
-  ceil:  () => 66
-};
-
-// 「反著跳」通常是這裡 lane 初始設錯
-function initPlayerOnFloor(){
-  player.lane = 1;
-  player.yTarget = laneY.floor();
-  player.yNow = player.yTarget;
-  player.y = player.yTarget;
-  player.trail.length = 0;
+function flip(){
+  if(!running){start();return;}
+  inverted=!inverted;
+  vy= inverted ? -8 : 8;
+  if(sfxOn) flipSfx.play();
 }
 
-let obstacles = [];
-let clouds = [];
-let particles = [];
+/* ========= Game ========= */
+function start(){
+  running=true;
+  pipes=[];
+  score=combo=0;
+  speed=1;
+  inverted=false;
+  y=180;vy=0;
+  bgmOn && bgm.play();
+}
+restart.onclick=start;
 
-// 生成節奏
-let spawnTimer = 0;
-let nextGap = 320;
-
-// 控制：翻轉時做一段「弧線/彈性」感
-let flipAnim = {
-  active:false,
-  t:0,
-  dur:220, // ms
-  from:0,
-  to:0
-};
-
-// UI：第一次觸控解鎖音訊
-let unlocked = false;
-
-/* ===================== Audio (better BGM) ===================== */
-let sfxEnabled = true;
-let bgmEnabled = false;
-let audioCtx = null;
-let bgmNodes = null;
-
-function ensureAudio(){
-  if(audioCtx) return;
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function spawnPipe(){
+  pipes.push({x:820,h:60+Math.random()*80});
 }
 
-function unlockAudio(){
-  if(unlocked) return;
-  ensureAudio();
-  if(audioCtx.state === "suspended") audioCtx.resume();
-  unlocked = true;
+function update(){
+  if(!running)return;
+  frame++;
+  if(frame%110===0)spawnPipe(); // 間距已拉開
+  y+=vy;
+  vy+= inverted ? -gravity : gravity;
+
+  pipes.forEach(p=>p.x-=3*speed);
+  pipes=pipes.filter(p=>p.x>-60);
+
+  score++;
+  if(score%200===0)speed+=0.05;
+
+  if(y<20||y>220)gameOver();
 }
 
-function playSFX(type){
-  if(!sfxEnabled) return;
-  unlockAudio();
-  if(!audioCtx) return;
+function draw(){
+  ctx.clearRect(0,0,800,240);
+  ctx.fillStyle="#111";
+  ctx.fillRect(80,y,22,22);
 
-  const t0 = audioCtx.currentTime;
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-
-  o.type = "triangle";
-  g.gain.setValueAtTime(0.0001, t0);
-
-  if(type==="flip"){
-    o.frequency.setValueAtTime(520, t0);
-    o.frequency.exponentialRampToValueAtTime(880, t0 + 0.06);
-    g.gain.exponentialRampToValueAtTime(0.18, t0 + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.10);
-    o.start(t0); o.stop(t0 + 0.11);
-  }else if(type==="hit"){
-    o.frequency.setValueAtTime(180, t0);
-    o.frequency.exponentialRampToValueAtTime(70, t0 + 0.12);
-    g.gain.exponentialRampToValueAtTime(0.28, t0 + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
-    o.start(t0); o.stop(t0 + 0.19);
-  }else if(type==="start"){
-    o.frequency.setValueAtTime(440, t0);
-    o.frequency.exponentialRampToValueAtTime(660, t0 + 0.08);
-    g.gain.exponentialRampToValueAtTime(0.16, t0 + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12);
-    o.start(t0); o.stop(t0 + 0.13);
-  }
-
-  o.connect(g);
-  g.connect(audioCtx.destination);
-}
-
-// 比原本更像遊戲：簡單 chord + arpeggio
-function startBGM(){
-  unlockAudio();
-  if(!audioCtx || bgmNodes) return;
-
-  const master = audioCtx.createGain();
-  master.gain.value = 0.14;
-
-  const delay = audioCtx.createDelay();
-  delay.delayTime.value = 0.18;
-  const fb = audioCtx.createGain();
-  fb.gain.value = 0.32;
-
-  const hp = audioCtx.createBiquadFilter();
-  hp.type = "highpass";
-  hp.frequency.value = 120;
-
-  master.connect(hp);
-  hp.connect(audioCtx.destination);
-
-  master.connect(delay);
-  delay.connect(fb);
-  fb.connect(delay);
-  delay.connect(hp);
-
-  const osc1 = audioCtx.createOscillator();
-  const osc2 = audioCtx.createOscillator();
-  const g1 = audioCtx.createGain();
-  const g2 = audioCtx.createGain();
-
-  osc1.type = "sine";
-  osc2.type = "triangle";
-  g1.gain.value = 0.65;
-  g2.gain.value = 0.35;
-
-  osc1.connect(g1); g1.connect(master);
-  osc2.connect(g2); g2.connect(master);
-
-  const bpm = 118;
-  const step = 60 / bpm / 2; // 8th
-  let stepIdx = 0;
-
-  // 和弦進行（A minor vibe）
-  const prog = [
-    [220, 261.63, 329.63], // A C E
-    [196, 246.94, 293.66], // G B D
-    [174.61, 220, 261.63], // F A C
-    [196, 246.94, 329.63]  // G B E
-  ];
-
-  function tick(){
-    if(!bgmNodes) return;
-    const now = audioCtx.currentTime;
-    const bar = Math.floor(stepIdx / 8) % prog.length;
-    const chord = prog[bar];
-
-    // arpeggio
-    const note = chord[stepIdx % chord.length];
-    osc1.frequency.setValueAtTime(note * 2, now);
-    osc2.frequency.setValueAtTime(note, now);
-
-    stepIdx++;
-    bgmNodes.timer = setTimeout(tick, step * 1000);
-  }
-
-  osc1.start();
-  osc2.start();
-  bgmNodes = { master, delay, fb, hp, osc1, osc2, g1, g2, timer:null };
-  tick();
-}
-
-function stopBGM(){
-  if(!bgmNodes) return;
-  clearTimeout(bgmNodes.timer);
-  try{ bgmNodes.osc1.stop(); bgmNodes.osc2.stop(); }catch(e){}
-  bgmNodes = null;
-}
-
-/* ===================== Leaderboard ===================== */
-async function fetchTop(){
-  if(!LEADERBOARD_URL){
-    rankHint.textContent = "（未設定 Apps Script）";
-    lbRows.textContent = "先把 LEADERBOARD_URL 貼上，世界排行才會出現。";
-    myRankEl.textContent = "-";
-    return;
-  }
-  rankHint.textContent = "載入中…";
-  try{
-    const res = await fetch(LEADERBOARD_URL + "?action=top");
-    const data = await res.json(); // { top:[{name,score}], myRank? }
-    renderTop(data.top || []);
-    rankHint.textContent = "更新完成";
-  }catch(err){
-    rankHint.textContent = "讀取失敗";
-    lbRows.textContent = "排行榜讀不到（Apps Script 回傳錯 / 被擋）";
-  }
-}
-
-function renderTop(top){
-  if(!top || top.length===0){
-    lbRows.textContent = "—";
-    return;
-  }
-  lbRows.innerHTML = top.slice(0,10).map((r,i)=>`
-    <div class="grid row">
-      <div>${i+1}</div>
-      <div>${escapeHtml(r.name || "NONAME")}</div>
-      <div style="text-align:right">${Number(r.score||0)}</div>
-    </div>
-  `).join("");
-}
-
-async function submitScore(){
-  if(state !== "over") return;
-  if(!LEADERBOARD_URL){
-    alert("你還沒設定 LEADERBOARD_URL（Apps Script 網址）所以送不出去～");
-    return;
-  }
-  const name = (nameEl.value || "Jerry").trim().slice(0,12);
-  if(!name) return;
-
-  rankHint.textContent = "送出中…";
-  try{
-    const res = await fetch(LEADERBOARD_URL, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ action:"submit", name, score: Math.floor(score) })
-    });
-    const data = await res.json(); // { ok:true, myRank:number, top:[...] }
-    if(data.top) renderTop(data.top);
-    if(typeof data.myRank === "number") myRankEl.textContent = data.myRank;
-    rankHint.textContent = "已送出 ✅";
-  }catch(err){
-    rankHint.textContent = "送出失敗";
-    alert("送出失敗：Apps Script 可能沒有開 CORS 或網址不對");
-  }
-}
-
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, m => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[m]));
-}
-
-/* ===================== Scene ===================== */
-function sceneColors(){
-  if(scene===0){
-    return { sky1:"#eaf6ff", sky2:"#f7fbff", fog:"rgba(150,190,220,.18)" };
-  }else if(scene===1){
-    return { sky1:"#ffe8f2", sky2:"#f6fbff", fog:"rgba(230,160,190,.18)" };
-  }else{
-    return { sky1:"#0b1028", sky2:"#111a3a", fog:"rgba(120,140,255,.12)" };
-  }
-}
-function updateScene(){
-  // 每 500 分換一次（你想要也可以改 1000）
-  const s = Math.floor(score);
-  const newScene = Math.floor(s / 500) % 3;
-  if(newScene !== scene){
-    scene = newScene;
-    sceneEl.textContent = scene===0 ? "Morning" : scene===1 ? "Dusk" : "Night";
-  }
-}
-
-/* ===================== World reset ===================== */
-function resetWorld(){
-  score = 0;
-  combo = 0;
-  speed = 1.0;
-  scene = 0;
-  sceneEl.textContent = "Morning";
-  obstacles.length = 0;
-  clouds.length = 0;
-  particles.length = 0;
-
-  spawnTimer = 0;
-  nextGap = 330;
-
-  initPlayerOnFloor();
-
-  // 雲朵
-  for(let i=0;i<6;i++){
-    clouds.push({
-      x: 120 + i*160,
-      y: 40 + (i%3)*26,
-      s: 0.6 + (i%4)*0.12
-    });
-  }
-
-  state = "idle";
-  scoreEl.textContent = "0";
-  comboEl.textContent = "0";
-  speedEl.textContent = "1.0";
-  myRankEl.textContent = "-";
-}
-
-resetWorld();
-fetchTop();
-
-/* ===================== Spawning ===================== */
-function spawnObstacle(){
-  // 障礙在地板/天花板兩邊隨機
-  const onFloor = Math.random() < 0.5;
-  const w = 18 + Math.random()*14;
-  const h = 64 + Math.random()*70;
-
-  const y = onFloor ? laneY.floor() - h : laneY.ceil();
-  obstacles.push({
-    x: W + 20,
-    y,
-    w,
-    h,
-    onFloor
+  ctx.fillStyle="#111";
+  pipes.forEach(p=>{
+    ctx.fillRect(p.x,0,24,p.h);
+    ctx.fillRect(p.x,240-p.h,24,p.h);
+    if(p.x<80&&p.x>50)combo++;
   });
 
-  // 動態 gap：不要太近
-  // 速度越快 gap 越大一點點，避免無解
-  const base = 280;
-  const extra = Math.min(220, speed*70);
-  nextGap = base + extra + Math.random()*140;
+  scoreEl.textContent=score;
+  comboEl.textContent=combo;
+  speedEl.textContent=speed.toFixed(1);
 }
 
-/* ===================== Input ===================== */
-function flipGravity(){
-  if(state === "over") return;
-  unlockAudio();
-
-  if(state === "idle"){
-    // 第一次點：開始跑（避免秒開）
-    state = "running";
-    playSFX("start");
-    if(bgmEnabled) startBGM();
-    return;
-  }
-
-  // running：翻轉
-  const toLane = -player.lane;
-  player.lane = toLane;
-
-  const fromY = player.yNow;
-  const toY = (toLane===1) ? laneY.floor() : laneY.ceil();
-
-  flipAnim.active = true;
-  flipAnim.t = 0;
-  flipAnim.from = fromY;
-  flipAnim.to = toY;
-
-  player.yTarget = toY;
-
-  playSFX("flip");
+function gameOver(){
+  running=false;
+  bgm.pause();
+  best=Math.max(best,score);
+  localStorage.best=best;
+  bestEl.textContent=best;
 }
 
-function onPointerDown(e){
-  e.preventDefault();
-  flipGravity();
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
 }
+loop();
 
-window.addEventListener("pointerdown", onPointerDown, { passive:false });
-window.addEventListener("keydown", (e)=>{
-  if(e.code==="Space"){
-    e.preventDefault();
-    flipGravity();
-  }
-});
+/* ========= Toggles ========= */
+sfx.onclick=()=>{sfxOn=!sfxOn;sfx.textContent=`SFX: ${sfxOn?"ON":"OFF"}`;}
+bgm.onclick=()=>{bgmOn=!bgmOn;bgm.textContent=`BGM: ${bgmOn?"ON":"OFF"}`; if(!bgmOn)bgm.pause();}
 
-restartBtn.addEventListener("click", ()=>{
-  unlockAudio();
-  resetWorld();
-});
-
-sfxBtn.addEventListener("click", ()=>{
-  unlockAudio();
-  sfxEnabled = !sfxEnabled;
-  sfxBtn.textContent = "SFX: " + (sfxEnabled ? "ON" : "OFF");
-});
-
-bgmBtn.addEventListener("click", ()=>{
-  unlockAudio();
-  bgmEnabled = !bgmEnabled;
-  bgmBtn.textContent = "BGM: " + (bgmEnabled ? "ON" : "OFF");
-  if(!bgmEnabled) stopBGM();
-  else if(state==="running") startBGM();
-});
-
-submitBtn.addEventListener("click", ()=>{
-  unlockAudio();
-  submitScore();
-});
-
-nameEl.addEventListener("change", ()=>{
-  localStorage.setItem(nameKey, (nameEl.value || "Jerry").trim().slice(0,12));
-});
-
-/* ===================== Collisions ===================== */
-function rectHit(ax,ay,aw,ah, bx,by,bw,bh){
-  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+/* ========= PWA ========= */
+if("serviceWorker"in navigator){
+  navigator.serviceWorker.register("service-worker.js");
 }
-
-/* ===================== Particles (hit) ===================== */
-function boom(x,y){
-  for(let i=0;i<26;i++){
-    const a = Math.random()*Math.PI*2;
-    const sp = 1.2 + Math.random()*4.2;
-    particles.push({
-      x,y,
-      vx: Math.cos(a)*sp,
-      vy: Math.sin(a)*sp,
-      life: 28 + Math.random()*18
-    });
-  }
-}
-
-/* ===================== Draw helpers ===================== */
-function drawCloud(x,y,s){
-  ctx.save();
-  ctx.translate(x,y);
-  ctx.scale(s,s);
-  ctx.globalAlpha = 0.85;
-  ctx.fillStyle = "rgba(255,255,255,.92)";
-  ctx.beginPath();
-  ctx.arc(0,0,16,0,Math.PI*2);
-  ctx.arc(18,-6,18,0,Math.PI*2);
-  ctx.arc(40,0,16,0,Math.PI*2);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawPlayer(){
-  // 角色：小機車外送員簡化像素（小方塊+頭盔）
-  const x = player.x, y = player.yNow;
-
-  // trail
-  for(let i=0;i<player.trail.length;i++){
-    const p = player.trail[i];
-    ctx.globalAlpha = (i/player.trail.length)*0.22;
-    ctx.fillStyle = "rgba(0,200,255,.55)";
-    ctx.fillRect(p.x-6, p.y-6, 12, 12);
-  }
-  ctx.globalAlpha = 1;
-
-  // body
-  ctx.fillStyle = "#111";
-  ctx.fillRect(x-10, y-12, 20, 24);
-
-  // helmet
-  ctx.fillStyle = "#0ea5e9";
-  ctx.fillRect(x-8, y-22, 16, 10);
-
-  // visor
-  ctx.fillStyle = "#e2e8f0";
-  ctx.fillRect(x-3, y-20, 8, 6);
-
-  // tiny wheels hint
-  ctx.fillStyle = "rgba(15,23,42,.35)";
-  ctx.fillRect(x-12, y+12, 24, 2);
-}
-
-function drawObstacles(){
-  ctx.fillStyle = "#111";
-  obstacles.forEach(o=>{
-    ctx.fillRect(o.x, o.y, o.w, o.h);
-  });
-}
-
-function drawWorld(){
-  const sc = sceneColors();
-
-  // sky
-  const grd = ctx.createLinearGradient(0,0,0,H);
-  grd.addColorStop(0, sc.sky1);
-  grd.addColorStop(1, sc.sky2);
-  ctx.fillStyle = grd;
-  ctx.fillRect(0,0,W,H);
-
-  // clouds
-  clouds.forEach(cl=> drawCloud(cl.x, cl.y, cl.s));
-
-  // lanes lines
-  ctx.strokeStyle = "rgba(15,23,42,.14)";
-  ctx.lineWidth = 2;
-
-  // ceiling rail
-  ctx.beginPath();
-  ctx.moveTo(0, laneY.ceil()-18);
-  ctx.lineTo(W, laneY.ceil()-18);
-  ctx.stroke();
-
-  // floor rail
-  ctx.beginPath();
-  ctx.moveTo(0, laneY.floor()+18);
-  ctx.lineTo(W, laneY.floor()+18);
-  ctx.stroke(
+</script>
+</body>
+</html>
