@@ -1,12 +1,9 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Gravity Courier Run</title>
-
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#7dd3fc">
 
 <style>
 :root{
@@ -17,43 +14,52 @@
   --neon1:#a5f3fc;
   --neon2:#c7d2fe;
 }
-*{box-sizing:border-box;font-family:system-ui,-apple-system;}
+*{box-sizing:border-box;font-family:system-ui,-apple-system,BlinkMacSystemFont}
 body{
   margin:0;
-  background:linear-gradient(180deg,#eaf3ff,#f8fbff);
+  background:linear-gradient(180deg,#eef6ff,#f8fbff);
   color:var(--ink);
 }
-.wrap{max-width:900px;margin:auto;padding:16px;}
-h1{font-size:34px;margin:6px 0 10px;}
-.badge{
-  display:inline-block;padding:6px 12px;
-  border-radius:999px;background:#fff;
-  border:1px dashed #c7d2fe;margin:4px 4px;
+.wrap{max-width:900px;margin:14px auto;padding:10px}
+h1{margin:8px 0 6px;font-size:34px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chip{
+  padding:6px 10px;border-radius:999px;
+  border:1px dashed #c7d2fe;
+  background:#fff;
+  font-size:13px
 }
 .panel{
   background:var(--card);
-  border-radius:24px;
-  padding:16px;
-  box-shadow:
-    0 0 0 2px rgba(255,255,255,.9),
-    0 0 40px rgba(165,243,252,.7),
-    inset 0 0 30px rgba(199,210,254,.4);
+  border-radius:18px;
+  padding:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.08);
+}
+.canvasWrap{
+  position:relative;
+  border-radius:16px;
+  padding:10px;
+  background:linear-gradient(135deg,var(--neon1),var(--neon2));
 }
 canvas{
   width:100%;
-  height:auto;
-  border-radius:18px;
-  background:linear-gradient(180deg,#f8fbff,#eef6ff);
+  height:220px;
+  background:#eaf3ff;
+  border-radius:12px;
+  display:block;
 }
-.stats{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;}
-.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
-button{
-  padding:10px 14px;border-radius:14px;
-  border:2px dashed #c7d2fe;
-  background:#fff;font-weight:700;
+.stats{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0}
+.stats span{color:var(--muted)}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+button,input{
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px dashed #c7d2fe;
+  background:#fff;
+  font-size:14px
 }
-button.primary{border-style:solid;border-color:#93c5fd;}
-.small{font-size:13px;color:var(--muted);}
+button.primary{border:2px solid #93c5fd}
+.tip{margin-top:10px;color:var(--muted);font-size:13px}
 </style>
 </head>
 
@@ -61,118 +67,111 @@ button.primary{border-style:solid;border-color:#93c5fd;}
 <div class="wrap">
   <h1>🛵 Gravity Courier Run</h1>
 
-  <div class="badge">點一下翻轉重力 ✨</div>
-  <div class="badge">手機超順</div>
-  <div class="badge">Combo 越高加分越香 🍕</div>
+  <div class="chips">
+    <div class="chip">點一下翻轉重力 ✨</div>
+    <div class="chip">手機超順</div>
+    <div class="chip">Combo 越高加分越香 🍕</div>
+  </div>
 
   <div class="panel">
-    <canvas id="game" width="800" height="240"></canvas>
+    <div class="canvasWrap">
+      <canvas id="game" width="800" height="220"></canvas>
+    </div>
 
     <div class="stats">
-      <div>Score: <b id="score">0</b></div>
-      <div>Best: <b id="best">0</b></div>
-      <div>Combo: <b id="combo">0</b></div>
-      <div>Speed: <b id="speed">1.0</b></div>
+      <span>Score: <b id="score">0</b></span>
+      <span>Best: <b id="best">0</b></span>
+      <span>Combo: <b id="combo">0</b></span>
+      <span>Speed: <b id="speed">1.0</b></span>
     </div>
 
-    <div class="btns">
+    <div class="controls">
       <input id="name" placeholder="Name (≤12)" maxlength="12">
-      <button class="primary" id="restart">重新開始</button>
+      <button id="restart" class="primary">重新開始</button>
       <button id="sfx">SFX: ON</button>
-      <button id="bgm">BGM: ON</button>
+      <button id="bgm">BGM: OFF</button>
     </div>
 
-    <div class="small" style="margin-top:8px">
-      操作：點一下 / 空白鍵 → 翻轉重力（地板 ↔ 天花板）<br>
-      提示：貼著柱子飛過（別撞到）更容易累積 Combo
+    <div class="tip">
+      操作：點一下 / 空白鍵 → 翻轉重力（地板 ⇄ 天花板）<br>
+      提示：重新開始後先「待機」，再點一下才會跑（不會秒開）😺
     </div>
   </div>
 </div>
 
 <script>
-/* ========= Canvas ========= */
-const c = game, ctx = c.getContext("2d");
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-/* ========= State ========= */
-let y=180, vy=0, gravity=0.6, inverted=false;
-let pipes=[], frame=0;
-let score=0, combo=0, speed=1;
-let running=false;
-let best=+localStorage.best||0;
-bestEl.textContent=best;
+let gravity = 1;
+let y = 160;
+let vy = 0;
+let score = 0;
+let combo = 0;
+let speed = 1;
+let running = false;
 
-/* ========= Audio ========= */
-let sfxOn=true,bgmOn=true;
-const flipSfx=new Audio("https://assets.mixkit.co/sfx/preview/mixkit-arcade-jump-coin-216.wav");
-const bgm=new Audio("https://assets.mixkit.co/music/preview/mixkit-chill-gaming-123.mp3");
-bgm.loop=true;
+let obstacles = [];
 
-/* ========= Controls ========= */
-addEventListener("pointerdown", flip);
-addEventListener("keydown", e=>{if(e.code==="Space")flip();});
-
-function flip(){
-  if(!running){start();return;}
-  inverted=!inverted;
-  vy= inverted ? -8 : 8;
-  if(sfxOn) flipSfx.play();
+function reset(){
+  y = 160;
+  vy = 0;
+  gravity = 1;
+  score = 0;
+  combo = 0;
+  speed = 1;
+  obstacles = [];
+  running = false;
+  updateUI();
 }
+reset();
 
-/* ========= Game ========= */
-function start(){
-  running=true;
-  pipes=[];
-  score=combo=0;
-  speed=1;
-  inverted=false;
-  y=180;vy=0;
-  bgmOn && bgm.play();
-}
-restart.onclick=start;
-
-function spawnPipe(){
-  pipes.push({x:820,h:60+Math.random()*80});
+function spawn(){
+  obstacles.push({
+    x: canvas.width,
+    gapY: Math.random()*100+60
+  });
 }
 
 function update(){
-  if(!running)return;
-  frame++;
-  if(frame%110===0)spawnPipe(); // 間距已拉開
-  y+=vy;
-  vy+= inverted ? -gravity : gravity;
+  if(!running) return;
 
-  pipes.forEach(p=>p.x-=3*speed);
-  pipes=pipes.filter(p=>p.x>-60);
+  vy += gravity*0.6;
+  y += vy;
 
-  score++;
-  if(score%200===0)speed+=0.05;
+  if(y>180){ y=180; vy=0; }
+  if(y<20){ y=20; vy=0; }
 
-  if(y<20||y>220)gameOver();
+  obstacles.forEach(o=>{
+    o.x -= 3*speed;
+    if(!o.passed && o.x<120){
+      o.passed=true;
+      score+=10;
+      combo++;
+      speed = 1 + combo*0.02;
+    }
+  });
+
+  obstacles = obstacles.filter(o=>o.x>-40);
+
+  if(Math.random()<0.02) spawn();
+
+  updateUI();
 }
 
 function draw(){
-  ctx.clearRect(0,0,800,240);
-  ctx.fillStyle="#111";
-  ctx.fillRect(80,y,22,22);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
+  // player
   ctx.fillStyle="#111";
-  pipes.forEach(p=>{
-    ctx.fillRect(p.x,0,24,p.h);
-    ctx.fillRect(p.x,240-p.h,24,p.h);
-    if(p.x<80&&p.x>50)combo++;
+  ctx.fillRect(80,y-10,20,20);
+
+  // obstacles
+  ctx.fillStyle="#0f172a";
+  obstacles.forEach(o=>{
+    ctx.fillRect(o.x,0,20,o.gapY-30);
+    ctx.fillRect(o.x,o.gapY+30,20,220);
   });
-
-  scoreEl.textContent=score;
-  comboEl.textContent=combo;
-  speedEl.textContent=speed.toFixed(1);
-}
-
-function gameOver(){
-  running=false;
-  bgm.pause();
-  best=Math.max(best,score);
-  localStorage.best=best;
-  bestEl.textContent=best;
 }
 
 function loop(){
@@ -182,14 +181,28 @@ function loop(){
 }
 loop();
 
-/* ========= Toggles ========= */
-sfx.onclick=()=>{sfxOn=!sfxOn;sfx.textContent=`SFX: ${sfxOn?"ON":"OFF"}`;}
-bgm.onclick=()=>{bgmOn=!bgmOn;bgm.textContent=`BGM: ${bgmOn?"ON":"OFF"}`; if(!bgmOn)bgm.pause();}
-
-/* ========= PWA ========= */
-if("serviceWorker"in navigator){
-  navigator.serviceWorker.register("service-worker.js");
+function flip(){
+  if(!running){ running=true; return; }
+  gravity*=-1;
+  vy = -vy*0.6;
 }
+
+document.addEventListener("click",flip);
+document.addEventListener("keydown",e=>{
+  if(e.code==="Space") flip();
+});
+
+document.getElementById("restart").onclick=reset;
+
+function updateUI(){
+  scoreEl.textContent=score;
+  comboEl.textContent=combo;
+  speedEl.textContent=speed.toFixed(1);
+}
+
+const scoreEl=document.getElementById("score");
+const comboEl=document.getElementById("combo");
+const speedEl=document.getElementById("speed");
 </script>
 </body>
 </html>
