@@ -6,663 +6,758 @@
   <title>Gravity Courier Run</title>
   <style>
     :root{
-      --bg1:#e7f2ff;
-      --bg2:#f7f9ff;
-      --ink:#0b1020;
-      --muted:#56607a;
-      --card:rgba(255,255,255,.72);
-      --stroke:rgba(10,20,40,.14);
-
-      --neo1:#7cf7ff;
-      --neo2:#9d7bff;
-      --neo3:#ff5bd6;
-      --neo4:#7bffb1;
+      --bg1:#e9f2ff;
+      --bg2:#f7fbff;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --card:rgba(255,255,255,.78);
+      --stroke:rgba(15,23,42,.18);
+      --shadow: 0 18px 60px rgba(2,8,23,.12);
+      --neon1: rgba(0,255,255,.35);
+      --neon2: rgba(255,0,200,.25);
+      --neon3: rgba(100,255,100,.22);
     }
-    html,body{
-      margin:0;padding:0;
-      background: radial-gradient(1200px 600px at 30% 0%, var(--bg1), var(--bg2));
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans TC", Arial;
       color:var(--ink);
-      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial;
+      background: radial-gradient(1200px 700px at 20% 0%, #dff3ff 0%, transparent 55%),
+                  radial-gradient(1000px 600px at 90% 10%, #ffe0fb 0%, transparent 55%),
+                  linear-gradient(180deg,var(--bg1),var(--bg2));
       overflow-x:hidden;
     }
-    .wrap{max-width:980px;margin:14px auto;padding:0 12px;}
-    h1{margin:8px 0 8px;font-size:40px;letter-spacing:.5px;line-height:1.05}
-    .subbar{
-      display:flex;gap:10px;flex-wrap:wrap;align-items:center;
-      margin:6px 0 10px;
+
+    .wrap{max-width:980px;margin:16px auto;padding:0 14px}
+    .hero{
+      display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
     }
-    .pill{
-      background:rgba(255,255,255,.7);
-      border:1px solid var(--stroke);
-      backdrop-filter: blur(10px);
-      border-radius:999px;
-      padding:8px 12px;
-      color:var(--muted);
-      font-size:14px;
-      box-shadow: 0 10px 30px rgba(10,20,40,.10);
+    .title{
+      font-size:44px;line-height:1.05;margin:0;
+      letter-spacing:.5px;
     }
-    .pill b{color:var(--ink)}
+    .badgeRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .chip{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:10px 12px;border-radius:999px;
+      border:1px dashed rgba(15,23,42,.35);
+      background:rgba(255,255,255,.55);
+      backdrop-filter: blur(8px);
+      color:#0b1220;
+      font-weight:700;
+      box-shadow: 0 10px 30px rgba(2,8,23,.08);
+    }
+    .chip small{font-weight:600;color:var(--muted)}
     .panel{
+      margin-top:14px;
       background:var(--card);
       border:1px solid var(--stroke);
-      border-radius:18px;
-      box-shadow: 0 18px 40px rgba(10,20,40,.12);
-      padding:14px;
-    }
-
-    /* ===== Neon Frame ===== */
-    .frameWrap{position:relative;border-radius:22px;padding:10px}
-    .frameGlow{
-      position:absolute;inset:-10px;
-      background: conic-gradient(from 120deg, var(--neo1), var(--neo2), var(--neo3), var(--neo4), var(--neo1));
-      filter: blur(20px);
-      opacity:.55;
-      border-radius:28px;
-      animation: spin 10s linear infinite;
-    }
-    .frame{
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
       position:relative;
-      border-radius:18px;
-      padding:10px;
-      background: rgba(255,255,255,.70);
-      border:2px solid rgba(255,255,255,.65);
-      box-shadow:
-        0 0 0 2px rgba(10,20,40,.10) inset,
-        0 18px 40px rgba(10,20,40,.15);
     }
-    @keyframes spin{to{transform:rotate(360deg)}}
+    .panel::before{
+      content:"";
+      position:absolute;inset:-2px;
+      background:
+        radial-gradient(600px 260px at 20% 0%, var(--neon2), transparent 60%),
+        radial-gradient(700px 260px at 80% 10%, var(--neon1), transparent 60%),
+        radial-gradient(520px 240px at 50% 110%, var(--neon3), transparent 65%);
+      opacity:.9;
+      pointer-events:none;
+    }
 
+    .gameWrap{padding:16px;position:relative}
+    .frame{
+      border-radius:22px;
+      padding:14px;
+      background: rgba(255,255,255,.52);
+      border:1px solid rgba(15,23,42,.16);
+      position:relative;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.35);
+    }
+    .frame::after{
+      content:"";
+      position:absolute;inset:10px;
+      border-radius:18px;
+      border:2px solid rgba(255,255,255,.35);
+      box-shadow:
+        0 0 0 1px rgba(15,23,42,.10),
+        0 0 24px rgba(0,255,255,.18),
+        0 0 22px rgba(255,0,200,.10);
+      pointer-events:none;
+    }
     canvas{
       width:100%;
       height:auto;
       display:block;
-      border-radius:14px;
-      background: linear-gradient(180deg, rgba(255,255,255,.75), rgba(255,255,255,.65));
-      box-shadow: 0 0 0 2px rgba(10,20,40,.08) inset;
-      touch-action: manipulation;
-    }
-    .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
-    .stats{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
-    .stats span{color:var(--muted)}
-    .stats b{color:var(--ink)}
-    .btns{display:flex;flex-wrap:wrap;gap:10px;margin-left:auto}
-    button{
-      border:2px dashed rgba(10,20,40,.25);
-      background:rgba(255,255,255,.9);
-      color:var(--ink);
-      padding:10px 14px;
-      border-radius:14px;
-      font-weight:800;
-      font-size:15px;
-    }
-    button.primary{
-      border-style:solid;
-      border-color: rgba(80,140,255,.55);
-      box-shadow: 0 12px 26px rgba(80,140,255,.22);
-    }
-    button:active{transform:translateY(1px)}
-    input{
-      border:1px solid rgba(10,20,40,.2);
-      background:rgba(255,255,255,.85);
-      border-radius:14px;
-      padding:10px 12px;
-      font-size:15px;
-      outline:none;
-      min-width:170px;
-    }
-    .tip{
-      color:var(--muted);
-      font-size:14px;
-      margin-top:10px;
-    }
-    .tip b{color:var(--ink)}
-    .hintSmall{font-size:12px;opacity:.85}
-    .rightChip{
-      margin-left:auto;
-      background:rgba(255,255,255,.75);
-      border:1px solid var(--stroke);
-      border-radius:999px;
-      padding:8px 12px;
-      color:var(--muted);
-      font-size:13px;
-      box-shadow: 0 10px 30px rgba(10,20,40,.08);
-      max-width: 320px;
+      border-radius:16px;
+      background: linear-gradient(180deg,#eaf6ff,#f7fbff);
     }
 
-    @media (max-width:540px){
-      h1{font-size:34px}
-      .rightChip{max-width:100%}
-      .btns{margin-left:0;width:100%}
-      .btns button{flex:1}
-      input{flex:1;min-width:0;width:100%}
+    .stats{
+      display:flex;gap:14px;flex-wrap:wrap;
+      padding:12px 2px 0 2px;
+      font-weight:800;
+    }
+    .stats span{color:var(--muted);font-weight:700;margin-right:6px}
+    .btnRow{
+      display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+      padding-top:12px;
+    }
+    input{
+      padding:12px 14px;border-radius:14px;border:1px solid rgba(15,23,42,.18);
+      outline:none;background:rgba(255,255,255,.72);
+      font-size:16px;min-width:200px;
+    }
+    button{
+      padding:12px 16px;border-radius:14px;border:1px solid rgba(15,23,42,.18);
+      background:rgba(255,255,255,.82);
+      font-weight:900;
+      font-size:16px;
+      box-shadow: 0 10px 28px rgba(2,8,23,.10);
+      cursor:pointer;
+    }
+    button.toggle{
+      border:2px dashed rgba(15,23,42,.35);
+      background: rgba(255,255,255,.62);
+    }
+    .help{
+      padding:10px 2px 0 2px;
+      color:var(--muted);
+      font-weight:650;
+      line-height:1.45;
+    }
+
+    .lb{
+      margin-top:14px;
+      background:rgba(255,255,255,.68);
+      border:1px solid rgba(15,23,42,.16);
+      border-radius:18px;
+      padding:12px 14px;
+    }
+    .lb h3{margin:0 0 8px 0;font-size:18px}
+    .grid{
+      display:grid;
+      grid-template-columns: 50px 1fr 120px;
+      gap:8px;
+      font-weight:800;
+      align-items:center;
+    }
+    .grid .head{color:var(--muted);font-weight:900}
+    .row{padding:6px 0;border-top:1px dashed rgba(15,23,42,.18)}
+    .muted{color:var(--muted);font-weight:700}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 10px;border-radius:999px;
+      border:1px solid rgba(15,23,42,.14);
+      background:rgba(255,255,255,.6);
+      font-weight:900;
+    }
+
+    /* 手機防誤觸：按鈕更大 */
+    @media (max-width:520px){
+      .title{font-size:40px}
+      input{flex:1;min-width:0}
+      button{flex:1}
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
-      <h1>🛵 Gravity Courier Run</h1>
-      <div class="rightChip"><b>點一下翻轉重力</b>｜手機超順｜Combo 越高加分越香 🍕</div>
-    </div>
-
-    <div class="subbar">
-      <div class="pill">操作：<b>點一下 / 空白鍵</b>＝重力翻轉（地板⇄天花板）</div>
-      <div class="pill">小技巧：貼著障礙飛越（別撞到）更容易累積 <b>Combo</b></div>
+    <div class="hero">
+      <h1 class="title">🛵 Gravity Courier Run</h1>
+      <div class="badgeRow">
+        <div class="chip">點一下翻轉重力 <small>| 手機超順</small> <span>✨</span></div>
+        <div class="chip">貼著柱子飛越更容易累積 Combo <small>（別撞到）</small> 🍕</div>
+      </div>
     </div>
 
     <div class="panel">
-      <div class="frameWrap">
-        <div class="frameGlow"></div>
+      <div class="gameWrap">
         <div class="frame">
-          <canvas id="cv" width="900" height="360"></canvas>
+          <canvas id="c" width="900" height="340"></canvas>
         </div>
-      </div>
 
-      <div class="bar">
         <div class="stats">
-          <span>Score: <b id="score">0</b></span>
-          <span>Best: <b id="best">0</b></span>
-          <span>Combo: <b id="combo">0</b></span>
-          <span>Speed: <b id="spd">1.0</b></span>
+          <div><span>Score:</span><b id="score">0</b></div>
+          <div><span>Best:</span><b id="best">0</b></div>
+          <div><span>Combo:</span><b id="combo">0</b></div>
+          <div><span>Speed:</span><b id="speed">1.0</b></div>
+          <div class="pill"><span>Scene:</span><b id="scene">Morning</b></div>
         </div>
 
-        <div class="btns">
+        <div class="btnRow">
           <input id="name" maxlength="12" placeholder="Name (≤12)" />
-          <button id="restart" class="primary">重新開始</button>
-          <button id="sfx">SFX: ON</button>
-          <button id="bgm">BGM: OFF</button>
+          <button id="restart">重新開始</button>
+          <button id="sfxBtn" class="toggle">SFX: ON</button>
+          <button id="bgmBtn" class="toggle">BGM: OFF</button>
+          <button id="submit" title="Game Over 後送出">送出世界排行</button>
         </div>
-      </div>
 
-      <div class="tip">
-        <b>玩法：</b>點一下就把重力翻過去，避開柱子！<span class="hintSmall">（手機第一次點畫面後才允許播放聲音，這是瀏覽器規則）</span>
-        <br/>
-        <span class="hintSmall">提示：重新開始後會先「待機」，再點一下才開始跑（不會秒開）😺</span>
+        <div class="help">
+          <b>玩法：</b>點一下（或空白鍵）就把重力翻過去（地板⇄天花板），避開柱子！<br/>
+          <span class="muted">提示：</span>重新開始後會先「待機」，再點一下才開始跑（不會秒開）。<br/>
+          <span class="muted">手機聲音規則：</span>第一次要先點一下畫面才允許播放（瀏覽器規則）。
+        </div>
+
+        <div class="lb">
+          <h3>🏆 世界排名 <small class="muted" id="rankHint">載入中…</small></h3>
+          <div class="grid">
+            <div class="head">#</div><div class="head">名字</div><div class="head" style="text-align:right">分數</div>
+          </div>
+          <div id="lbRows" class="muted" style="padding-top:8px">—</div>
+          <div class="muted" style="padding-top:8px">
+            你的世界排名：<b id="myRank">-</b>（同名只顯示最高分）
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
 
 <script>
-(() => {
-  // ===== Canvas =====
-  const cv = document.getElementById("cv");
-  const ctx = cv.getContext("2d", { alpha: false });
+/* =========================================================
+   ✅ 把這裡換成你 Apps Script 的網址（不然世界排行會消失）
+   （用你恐龍那個排行榜同一支就行）
+========================================================= */
+const LEADERBOARD_URL = ""; // ←←← 貼上你的 Apps Script 網址
 
-  // ===== UI =====
-  const scoreEl = document.getElementById("score");
-  const bestEl  = document.getElementById("best");
-  const comboEl = document.getElementById("combo");
-  const spdEl   = document.getElementById("spd");
-  const restartBtn = document.getElementById("restart");
-  const sfxBtn = document.getElementById("sfx");
-  const bgmBtn = document.getElementById("bgm");
-  const nameEl = document.getElementById("name");
+/* ===================== Canvas & basics ===================== */
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d', { alpha: false });
 
-  // ===== Storage =====
-  const bestKey = "gcr_best";
-  const nameKey = "gcr_name";
-  let best = +(localStorage.getItem(bestKey) || 0);
-  bestEl.textContent = best;
-  nameEl.value = (localStorage.getItem(nameKey) || "Milo").slice(0,12);
+const scoreEl = document.getElementById('score');
+const bestEl  = document.getElementById('best');
+const comboEl = document.getElementById('combo');
+const speedEl = document.getElementById('speed');
+const sceneEl = document.getElementById('scene');
 
-  nameEl.addEventListener("input", () => {
-    localStorage.setItem(nameKey, (nameEl.value || "Milo").trim().slice(0,12));
+const nameEl = document.getElementById('name');
+const restartBtn = document.getElementById('restart');
+const sfxBtn = document.getElementById('sfxBtn');
+const bgmBtn = document.getElementById('bgmBtn');
+const submitBtn = document.getElementById('submit');
+
+const lbRows = document.getElementById('lbRows');
+const myRankEl = document.getElementById('myRank');
+const rankHint = document.getElementById('rankHint');
+
+const nameKey = "gcr_name";
+nameEl.value = (localStorage.getItem(nameKey) || "Jerry").slice(0,12);
+
+let W = canvas.width, H = canvas.height;
+function resize(){
+  // 依容器寬縮放，canvas 內部座標不變（較穩）
+  // 外觀用 CSS 控
+}
+resize();
+
+/* ===================== Game state ===================== */
+let state = "idle"; // idle | running | over
+let tPrev = performance.now();
+
+let score = 0;
+let best  = Number(localStorage.getItem("gcr_best") || 0);
+bestEl.textContent = best;
+
+let combo = 0;
+let speed = 1.0;
+
+let scene = 0; // 0 morning, 1 dusk, 2 night
+
+// 角色：固定 x，y 在兩條 lane 間切換（地板/天花板）
+const player = {
+  x: 130,
+  y: 0,
+  yNow: 0,
+  yTarget: 0,
+  lane: 1,        // 1 = 地板, -1 = 天花板
+  r: 14,
+  trail: []
+};
+
+// lane y 定義
+const laneY = {
+  floor: () => H - 66,
+  ceil:  () => 66
+};
+
+// 「反著跳」通常是這裡 lane 初始設錯
+function initPlayerOnFloor(){
+  player.lane = 1;
+  player.yTarget = laneY.floor();
+  player.yNow = player.yTarget;
+  player.y = player.yTarget;
+  player.trail.length = 0;
+}
+
+let obstacles = [];
+let clouds = [];
+let particles = [];
+
+// 生成節奏
+let spawnTimer = 0;
+let nextGap = 320;
+
+// 控制：翻轉時做一段「弧線/彈性」感
+let flipAnim = {
+  active:false,
+  t:0,
+  dur:220, // ms
+  from:0,
+  to:0
+};
+
+// UI：第一次觸控解鎖音訊
+let unlocked = false;
+
+/* ===================== Audio (better BGM) ===================== */
+let sfxEnabled = true;
+let bgmEnabled = false;
+let audioCtx = null;
+let bgmNodes = null;
+
+function ensureAudio(){
+  if(audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+function unlockAudio(){
+  if(unlocked) return;
+  ensureAudio();
+  if(audioCtx.state === "suspended") audioCtx.resume();
+  unlocked = true;
+}
+
+function playSFX(type){
+  if(!sfxEnabled) return;
+  unlockAudio();
+  if(!audioCtx) return;
+
+  const t0 = audioCtx.currentTime;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+
+  o.type = "triangle";
+  g.gain.setValueAtTime(0.0001, t0);
+
+  if(type==="flip"){
+    o.frequency.setValueAtTime(520, t0);
+    o.frequency.exponentialRampToValueAtTime(880, t0 + 0.06);
+    g.gain.exponentialRampToValueAtTime(0.18, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.10);
+    o.start(t0); o.stop(t0 + 0.11);
+  }else if(type==="hit"){
+    o.frequency.setValueAtTime(180, t0);
+    o.frequency.exponentialRampToValueAtTime(70, t0 + 0.12);
+    g.gain.exponentialRampToValueAtTime(0.28, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
+    o.start(t0); o.stop(t0 + 0.19);
+  }else if(type==="start"){
+    o.frequency.setValueAtTime(440, t0);
+    o.frequency.exponentialRampToValueAtTime(660, t0 + 0.08);
+    g.gain.exponentialRampToValueAtTime(0.16, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12);
+    o.start(t0); o.stop(t0 + 0.13);
+  }
+
+  o.connect(g);
+  g.connect(audioCtx.destination);
+}
+
+// 比原本更像遊戲：簡單 chord + arpeggio
+function startBGM(){
+  unlockAudio();
+  if(!audioCtx || bgmNodes) return;
+
+  const master = audioCtx.createGain();
+  master.gain.value = 0.14;
+
+  const delay = audioCtx.createDelay();
+  delay.delayTime.value = 0.18;
+  const fb = audioCtx.createGain();
+  fb.gain.value = 0.32;
+
+  const hp = audioCtx.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.value = 120;
+
+  master.connect(hp);
+  hp.connect(audioCtx.destination);
+
+  master.connect(delay);
+  delay.connect(fb);
+  fb.connect(delay);
+  delay.connect(hp);
+
+  const osc1 = audioCtx.createOscillator();
+  const osc2 = audioCtx.createOscillator();
+  const g1 = audioCtx.createGain();
+  const g2 = audioCtx.createGain();
+
+  osc1.type = "sine";
+  osc2.type = "triangle";
+  g1.gain.value = 0.65;
+  g2.gain.value = 0.35;
+
+  osc1.connect(g1); g1.connect(master);
+  osc2.connect(g2); g2.connect(master);
+
+  const bpm = 118;
+  const step = 60 / bpm / 2; // 8th
+  let stepIdx = 0;
+
+  // 和弦進行（A minor vibe）
+  const prog = [
+    [220, 261.63, 329.63], // A C E
+    [196, 246.94, 293.66], // G B D
+    [174.61, 220, 261.63], // F A C
+    [196, 246.94, 329.63]  // G B E
+  ];
+
+  function tick(){
+    if(!bgmNodes) return;
+    const now = audioCtx.currentTime;
+    const bar = Math.floor(stepIdx / 8) % prog.length;
+    const chord = prog[bar];
+
+    // arpeggio
+    const note = chord[stepIdx % chord.length];
+    osc1.frequency.setValueAtTime(note * 2, now);
+    osc2.frequency.setValueAtTime(note, now);
+
+    stepIdx++;
+    bgmNodes.timer = setTimeout(tick, step * 1000);
+  }
+
+  osc1.start();
+  osc2.start();
+  bgmNodes = { master, delay, fb, hp, osc1, osc2, g1, g2, timer:null };
+  tick();
+}
+
+function stopBGM(){
+  if(!bgmNodes) return;
+  clearTimeout(bgmNodes.timer);
+  try{ bgmNodes.osc1.stop(); bgmNodes.osc2.stop(); }catch(e){}
+  bgmNodes = null;
+}
+
+/* ===================== Leaderboard ===================== */
+async function fetchTop(){
+  if(!LEADERBOARD_URL){
+    rankHint.textContent = "（未設定 Apps Script）";
+    lbRows.textContent = "先把 LEADERBOARD_URL 貼上，世界排行才會出現。";
+    myRankEl.textContent = "-";
+    return;
+  }
+  rankHint.textContent = "載入中…";
+  try{
+    const res = await fetch(LEADERBOARD_URL + "?action=top");
+    const data = await res.json(); // { top:[{name,score}], myRank? }
+    renderTop(data.top || []);
+    rankHint.textContent = "更新完成";
+  }catch(err){
+    rankHint.textContent = "讀取失敗";
+    lbRows.textContent = "排行榜讀不到（Apps Script 回傳錯 / 被擋）";
+  }
+}
+
+function renderTop(top){
+  if(!top || top.length===0){
+    lbRows.textContent = "—";
+    return;
+  }
+  lbRows.innerHTML = top.slice(0,10).map((r,i)=>`
+    <div class="grid row">
+      <div>${i+1}</div>
+      <div>${escapeHtml(r.name || "NONAME")}</div>
+      <div style="text-align:right">${Number(r.score||0)}</div>
+    </div>
+  `).join("");
+}
+
+async function submitScore(){
+  if(state !== "over") return;
+  if(!LEADERBOARD_URL){
+    alert("你還沒設定 LEADERBOARD_URL（Apps Script 網址）所以送不出去～");
+    return;
+  }
+  const name = (nameEl.value || "Jerry").trim().slice(0,12);
+  if(!name) return;
+
+  rankHint.textContent = "送出中…";
+  try{
+    const res = await fetch(LEADERBOARD_URL, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ action:"submit", name, score: Math.floor(score) })
+    });
+    const data = await res.json(); // { ok:true, myRank:number, top:[...] }
+    if(data.top) renderTop(data.top);
+    if(typeof data.myRank === "number") myRankEl.textContent = data.myRank;
+    rankHint.textContent = "已送出 ✅";
+  }catch(err){
+    rankHint.textContent = "送出失敗";
+    alert("送出失敗：Apps Script 可能沒有開 CORS 或網址不對");
+  }
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[m]));
+}
+
+/* ===================== Scene ===================== */
+function sceneColors(){
+  if(scene===0){
+    return { sky1:"#eaf6ff", sky2:"#f7fbff", fog:"rgba(150,190,220,.18)" };
+  }else if(scene===1){
+    return { sky1:"#ffe8f2", sky2:"#f6fbff", fog:"rgba(230,160,190,.18)" };
+  }else{
+    return { sky1:"#0b1028", sky2:"#111a3a", fog:"rgba(120,140,255,.12)" };
+  }
+}
+function updateScene(){
+  // 每 500 分換一次（你想要也可以改 1000）
+  const s = Math.floor(score);
+  const newScene = Math.floor(s / 500) % 3;
+  if(newScene !== scene){
+    scene = newScene;
+    sceneEl.textContent = scene===0 ? "Morning" : scene===1 ? "Dusk" : "Night";
+  }
+}
+
+/* ===================== World reset ===================== */
+function resetWorld(){
+  score = 0;
+  combo = 0;
+  speed = 1.0;
+  scene = 0;
+  sceneEl.textContent = "Morning";
+  obstacles.length = 0;
+  clouds.length = 0;
+  particles.length = 0;
+
+  spawnTimer = 0;
+  nextGap = 330;
+
+  initPlayerOnFloor();
+
+  // 雲朵
+  for(let i=0;i<6;i++){
+    clouds.push({
+      x: 120 + i*160,
+      y: 40 + (i%3)*26,
+      s: 0.6 + (i%4)*0.12
+    });
+  }
+
+  state = "idle";
+  scoreEl.textContent = "0";
+  comboEl.textContent = "0";
+  speedEl.textContent = "1.0";
+  myRankEl.textContent = "-";
+}
+
+resetWorld();
+fetchTop();
+
+/* ===================== Spawning ===================== */
+function spawnObstacle(){
+  // 障礙在地板/天花板兩邊隨機
+  const onFloor = Math.random() < 0.5;
+  const w = 18 + Math.random()*14;
+  const h = 64 + Math.random()*70;
+
+  const y = onFloor ? laneY.floor() - h : laneY.ceil();
+  obstacles.push({
+    x: W + 20,
+    y,
+    w,
+    h,
+    onFloor
   });
 
-  // ===== Audio (simple synth) =====
-  let audioCtx = null;
-  let sfxOn = true;
-  let bgmOn = false;
-  let bgmTimer = null;
+  // 動態 gap：不要太近
+  // 速度越快 gap 越大一點點，避免無解
+  const base = 280;
+  const extra = Math.min(220, speed*70);
+  nextGap = base + extra + Math.random()*140;
+}
 
-  function unlockAudio(){
-    if (!audioCtx){
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.state === "suspended") audioCtx.resume();
+/* ===================== Input ===================== */
+function flipGravity(){
+  if(state === "over") return;
+  unlockAudio();
+
+  if(state === "idle"){
+    // 第一次點：開始跑（避免秒開）
+    state = "running";
+    playSFX("start");
+    if(bgmEnabled) startBGM();
+    return;
   }
 
-  function beep(freq=440, dur=0.06, type="sine", vol=0.12){
-    if(!sfxOn || !audioCtx) return;
-    const t0 = audioCtx.currentTime;
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = type;
-    o.frequency.setValueAtTime(freq, t0);
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    o.connect(g).connect(audioCtx.destination);
-    o.start(t0);
-    o.stop(t0 + dur + 0.02);
-  }
+  // running：翻轉
+  const toLane = -player.lane;
+  player.lane = toLane;
 
-  function startBGM(){
-    if(!bgmOn || !audioCtx) return;
-    stopBGM();
-    const seq = [
-      [392, 0.09],[440, 0.09],[523.25,0.09],[440,0.09],
-      [392, 0.09],[349.23,0.09],[392,0.12],[0,0.10],
-    ];
-    let i=0;
-    bgmTimer = setInterval(() => {
-      const [f, d] = seq[i++ % seq.length];
-      if(f>0) beep(f, d, "triangle", 0.05);
-    }, 120);
-  }
-  function stopBGM(){
-    if(bgmTimer){ clearInterval(bgmTimer); bgmTimer=null; }
-  }
+  const fromY = player.yNow;
+  const toY = (toLane===1) ? laneY.floor() : laneY.ceil();
 
-  sfxBtn.addEventListener("click", () => {
-    unlockAudio();
-    sfxOn = !sfxOn;
-    sfxBtn.textContent = `SFX: ${sfxOn ? "ON" : "OFF"}`;
-    if(sfxOn) beep(660,0.05,"square",0.08);
-  });
-  bgmBtn.addEventListener("click", () => {
-    unlockAudio();
-    bgmOn = !bgmOn;
-    bgmBtn.textContent = `BGM: ${bgmOn ? "ON" : "OFF"}`;
-    if(bgmOn) startBGM(); else stopBGM();
-  });
+  flipAnim.active = true;
+  flipAnim.t = 0;
+  flipAnim.from = fromY;
+  flipAnim.to = toY;
 
-  // ===== Game State =====
-  const W = cv.width, H = cv.height;
-  const floorY = H - 70;
-  const ceilY  = 70;
+  player.yTarget = toY;
 
-  let running = false;     // true = loop updates
-  let playing = false;     // true = actually moving obstacles & scoring
-  let lastT = 0;
+  playSFX("flip");
+}
 
-  let score = 0;
-  let combo = 0;
-  let speed = 260;         // pixels per second (base)
-  let speedMul = 1;
+function onPointerDown(e){
+  e.preventDefault();
+  flipGravity();
+}
 
-  const player = {
-    x: 120,
-    y: floorY - 26,
-    w: 22,
-    h: 26,
-    vy: 0,
-    g: 1400,
-    gravSign: +1, // +1 gravity down, -1 gravity up
-    onSurface: true,
-    flipCD: 0
-  };
-
-  const obstacles = [];
-  const clouds = [];
-  let spawnTimer = 0;
-
-  // visual scene
-  let scenePhase = 0;
-
-  function reset(){
-    running = true;
-    playing = false; // start in standby (won't move until first tap)
-    score = 0;
-    combo = 0;
-    speedMul = 1;
-    spawnTimer = 0;
-    obstacles.length = 0;
-    clouds.length = 0;
-    scenePhase = 0;
-
-    player.gravSign = +1;
-    player.y = floorY - player.h;
-    player.vy = 0;
-    player.onSurface = true;
-    player.flipCD = 0;
-
-    for(let i=0;i<6;i++){
-      clouds.push({
-        x: Math.random()*W,
-        y: 30 + Math.random()*120,
-        s: 16 + Math.random()*26,
-        vx: 8 + Math.random()*18
-      });
-    }
-
-    scoreEl.textContent = "0";
-    comboEl.textContent = "0";
-    spdEl.textContent = "1.0";
-  }
-
-  function startPlay(){
-    if(!running) return;
-    if(playing) return;
-    playing = true;
-    unlockAudio();
-    if(bgmOn) startBGM();
-  }
-
-  function gameOver(){
-    playing = false;
-    // keep standby, not frozen UI
-    if(score > best){
-      best = score;
-      localStorage.setItem(bestKey, best);
-      bestEl.textContent = best;
-    }
-    beep(180,0.12,"sawtooth",0.10);
-    beep(120,0.16,"sine",0.10);
-  }
-
-  function flipGravity(){
-    if(!running) return;
-    startPlay();
-
-    if(player.flipCD > 0) return;
-
-    // Flip
-    player.gravSign *= -1;
-    // give a small impulse in the new gravity direction for responsiveness
-    player.vy = -player.gravSign * 520;
-
-    // SFX
-    beep(880,0.04,"square",0.08);
-    beep(660,0.06,"triangle",0.06);
-
-    player.onSurface = false;
-    player.flipCD = 0.12; // prevent double flip spam
-  }
-
-  // input
-  function onTap(e){
-    e.preventDefault?.();
-    unlockAudio();
+window.addEventListener("pointerdown", onPointerDown, { passive:false });
+window.addEventListener("keydown", (e)=>{
+  if(e.code==="Space"){
+    e.preventDefault();
     flipGravity();
   }
-  cv.addEventListener("pointerdown", onTap, { passive:false });
-  window.addEventListener("keydown", (e) => {
-    if(e.code === "Space"){
-      e.preventDefault();
-      unlockAudio();
-      flipGravity();
-    }
-  }, { passive:false });
+});
 
-  restartBtn.addEventListener("click", () => {
-    unlockAudio();
-    reset();
-    // IMPORTANT: not auto play. wait for first tap/space
+restartBtn.addEventListener("click", ()=>{
+  unlockAudio();
+  resetWorld();
+});
+
+sfxBtn.addEventListener("click", ()=>{
+  unlockAudio();
+  sfxEnabled = !sfxEnabled;
+  sfxBtn.textContent = "SFX: " + (sfxEnabled ? "ON" : "OFF");
+});
+
+bgmBtn.addEventListener("click", ()=>{
+  unlockAudio();
+  bgmEnabled = !bgmEnabled;
+  bgmBtn.textContent = "BGM: " + (bgmEnabled ? "ON" : "OFF");
+  if(!bgmEnabled) stopBGM();
+  else if(state==="running") startBGM();
+});
+
+submitBtn.addEventListener("click", ()=>{
+  unlockAudio();
+  submitScore();
+});
+
+nameEl.addEventListener("change", ()=>{
+  localStorage.setItem(nameKey, (nameEl.value || "Jerry").trim().slice(0,12));
+});
+
+/* ===================== Collisions ===================== */
+function rectHit(ax,ay,aw,ah, bx,by,bw,bh){
+  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+}
+
+/* ===================== Particles (hit) ===================== */
+function boom(x,y){
+  for(let i=0;i<26;i++){
+    const a = Math.random()*Math.PI*2;
+    const sp = 1.2 + Math.random()*4.2;
+    particles.push({
+      x,y,
+      vx: Math.cos(a)*sp,
+      vy: Math.sin(a)*sp,
+      life: 28 + Math.random()*18
+    });
+  }
+}
+
+/* ===================== Draw helpers ===================== */
+function drawCloud(x,y,s){
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.scale(s,s);
+  ctx.globalAlpha = 0.85;
+  ctx.fillStyle = "rgba(255,255,255,.92)";
+  ctx.beginPath();
+  ctx.arc(0,0,16,0,Math.PI*2);
+  ctx.arc(18,-6,18,0,Math.PI*2);
+  ctx.arc(40,0,16,0,Math.PI*2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawPlayer(){
+  // 角色：小機車外送員簡化像素（小方塊+頭盔）
+  const x = player.x, y = player.yNow;
+
+  // trail
+  for(let i=0;i<player.trail.length;i++){
+    const p = player.trail[i];
+    ctx.globalAlpha = (i/player.trail.length)*0.22;
+    ctx.fillStyle = "rgba(0,200,255,.55)";
+    ctx.fillRect(p.x-6, p.y-6, 12, 12);
+  }
+  ctx.globalAlpha = 1;
+
+  // body
+  ctx.fillStyle = "#111";
+  ctx.fillRect(x-10, y-12, 20, 24);
+
+  // helmet
+  ctx.fillStyle = "#0ea5e9";
+  ctx.fillRect(x-8, y-22, 16, 10);
+
+  // visor
+  ctx.fillStyle = "#e2e8f0";
+  ctx.fillRect(x-3, y-20, 8, 6);
+
+  // tiny wheels hint
+  ctx.fillStyle = "rgba(15,23,42,.35)";
+  ctx.fillRect(x-12, y+12, 24, 2);
+}
+
+function drawObstacles(){
+  ctx.fillStyle = "#111";
+  obstacles.forEach(o=>{
+    ctx.fillRect(o.x, o.y, o.w, o.h);
   });
+}
 
-  // ===== Spawning =====
-  function spawnObstacle(){
-    // gap size changes with speed but keeps fair
-    const minGap = 180;
-    const maxGap = 260;
+function drawWorld(){
+  const sc = sceneColors();
 
-    const gap = minGap + (maxGap-minGap) * Math.random();
+  // sky
+  const grd = ctx.createLinearGradient(0,0,0,H);
+  grd.addColorStop(0, sc.sky1);
+  grd.addColorStop(1, sc.sky2);
+  ctx.fillStyle = grd;
+  ctx.fillRect(0,0,W,H);
 
-    // obstacle width
-    const w = 18 + Math.random()*16;
-    // obstacle height varies
-    const h = 34 + Math.random()*90;
+  // clouds
+  clouds.forEach(cl=> drawCloud(cl.x, cl.y, cl.s));
 
-    // choose floor or ceiling obstacle
-    const fromFloor = Math.random() < 0.5;
+  // lanes lines
+  ctx.strokeStyle = "rgba(15,23,42,.14)";
+  ctx.lineWidth = 2;
 
-    const o = {
-      x: W + 40,
-      w,
-      h,
-      fromFloor,
-      passed:false
-    };
-    obstacles.push(o);
+  // ceiling rail
+  ctx.beginPath();
+  ctx.moveTo(0, laneY.ceil()-18);
+  ctx.lineTo(W, laneY.ceil()-18);
+  ctx.stroke();
 
-    // timer until next
-    spawnTimer = gap / (speed*speedMul);
-  }
-
-  function rectHit(ax,ay,aw,ah,bx,by,bw,bh){
-    return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
-  }
-
-  // ===== Update / Draw =====
-  function update(dt){
-    // clouds always drift even in standby
-    for(const c of clouds){
-      c.x -= c.vx * dt;
-      if(c.x < -60){ c.x = W + 60; c.y = 30 + Math.random()*120; }
-    }
-
-    if(!playing){
-      // only idle bob
-      player.flipCD = Math.max(0, player.flipCD - dt);
-      return;
-    }
-
-    // speed ramps
-    speedMul = Math.min(2.2, 1 + score/900);
-    spdEl.textContent = speedMul.toFixed(1);
-
-    // score
-    score += Math.floor(60 * dt * speedMul);
-    scoreEl.textContent = score;
-
-    // scene phase
-    scenePhase = Math.floor(score / 800) % 3;
-
-    // physics
-    player.flipCD = Math.max(0, player.flipCD - dt);
-
-    player.vy += player.g * player.gravSign * dt;
-    player.y  += player.vy * dt;
-
-    // surface collide
-    if(player.gravSign > 0){
-      // floor
-      const targetY = floorY - player.h;
-      if(player.y > targetY){
-        player.y = targetY;
-        player.vy = 0;
-        player.onSurface = true;
-      } else player.onSurface = false;
-    } else {
-      // ceiling
-      const targetY = ceilY;
-      if(player.y < targetY){
-        player.y = targetY;
-        player.vy = 0;
-        player.onSurface = true;
-      } else player.onSurface = false;
-    }
-
-    // spawn
-    spawnTimer -= dt;
-    if(spawnTimer <= 0){
-      spawnObstacle();
-    }
-
-    // move obstacles
-    const vx = speed * speedMul;
-    for(const o of obstacles){
-      o.x -= vx * dt;
-      // scoring pass
-      if(!o.passed && o.x + o.w < player.x){
-        o.passed = true;
-        score += 10; // base pass bonus
-        // combo: if close to obstacle edge (skill)
-        const pyMid = player.y + player.h/2;
-        const oTop = o.fromFloor ? (floorY - o.h) : ceilY;
-        const oBot = o.fromFloor ? floorY : (ceilY + o.h);
-
-        // "close fly" when within 18px margin
-        const margin = 18;
-        const close = (Math.abs(pyMid - oTop) < margin) || (Math.abs(pyMid - oBot) < margin);
-        if(close){
-          combo++;
-          score += 8 * combo;
-          beep(740 + combo*20, 0.04, "triangle", 0.06);
-        }else{
-          combo = 0;
-        }
-        comboEl.textContent = combo;
-      }
-
-      // collision
-      const oy = o.fromFloor ? (floorY - o.h) : ceilY;
-      if(rectHit(player.x, player.y, player.w, player.h, o.x, oy, o.w, o.h)){
-        gameOver();
-      }
-    }
-
-    // clean
-    while(obstacles.length && obstacles[0].x < -80){
-      obstacles.shift();
-    }
-  }
-
-  function drawBackground(){
-    // scene tint
-    let sky1, sky2, line;
-    if(scenePhase === 0){
-      sky1 = "#f6fbff"; sky2="#e9f2ff"; line="rgba(40,80,140,.22)";
-    } else if(scenePhase === 1){
-      sky1 = "#fdf7ff"; sky2="#e8e2ff"; line="rgba(90,60,160,.22)";
-    } else {
-      sky1 = "#0b1020"; sky2="#121b34"; line="rgba(170,220,255,.12)";
-    }
-
-    const g = ctx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0, sky1);
-    g.addColorStop(1, sky2);
-    ctx.fillStyle = g;
-    ctx.fillRect(0,0,W,H);
-
-    // clouds / stars
-    if(scenePhase !== 2){
-      ctx.fillStyle = "rgba(255,255,255,.75)";
-      for(const c of clouds){
-        ctx.beginPath();
-        ctx.ellipse(c.x, c.y, c.s*1.2, c.s*0.8, 0, 0, Math.PI*2);
-        ctx.ellipse(c.x+18, c.y+6, c.s*0.9, c.s*0.7, 0, 0, Math.PI*2);
-        ctx.ellipse(c.x-18, c.y+8, c.s*0.85, c.s*0.65, 0, 0, Math.PI*2);
-        ctx.fill();
-      }
-    } else {
-      // stars
-      ctx.fillStyle = "rgba(255,255,255,.8)";
-      for(let i=0;i<80;i++){
-        const x = (i*97)%W;
-        const y = (i*53)%H;
-        ctx.fillRect(x, y, 1, 1);
-      }
-    }
-
-    // floor & ceiling rails
-    ctx.strokeStyle = line;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, floorY+2); ctx.lineTo(W, floorY+2);
-    ctx.moveTo(0, ceilY-2);  ctx.lineTo(W, ceilY-2);
-    ctx.stroke();
-
-    // dotted guide
-    ctx.strokeStyle = "rgba(0,0,0,.08)";
-    ctx.setLineDash([6,10]);
-    ctx.beginPath();
-    ctx.moveTo(0, (floorY+ceilY)/2); ctx.lineTo(W, (floorY+ceilY)/2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
-  function drawObstacle(o){
-    const y = o.fromFloor ? (floorY - o.h) : ceilY;
-    // neon-ish obstacle
-    ctx.save();
-    ctx.shadowColor = "rgba(125,250,255,.45)";
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = "rgba(20,30,50,.95)";
-    ctx.fillRect(o.x, y, o.w, o.h);
-
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = "rgba(124,247,255,.55)";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(o.x+1, y+1, o.w-2, o.h-2);
-    ctx.restore();
-  }
-
-  function drawPlayer(){
-    // small courier blob
-    ctx.save();
-    ctx.shadowColor = "rgba(255,90,210,.35)";
-    ctx.shadowBlur = 10;
-
-    // body
-    ctx.fillStyle = "rgba(10,20,40,.95)";
-    ctx.fillRect(player.x, player.y, player.w, player.h);
-
-    // visor
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = "rgba(124,247,255,.85)";
-    ctx.fillRect(player.x+4, player.y+6, player.w-8, 6);
-
-    // tiny wheel/foot
-    ctx.fillStyle = "rgba(255,255,255,.9)";
-    const footY = player.gravSign>0 ? (player.y+player.h-4) : (player.y+2);
-    ctx.fillRect(player.x+6, footY, player.w-12, 2);
-
-    ctx.restore();
-  }
-
-  function drawHUD(){
-    if(!playing){
-      // standby text
-      ctx.save();
-      ctx.fillStyle = "rgba(0,0,0,.35)";
-      ctx.font = "800 44px ui-sans-serif, system-ui";
-      ctx.textAlign = "center";
-      ctx.fillText("TAP TO START", W/2, H/2 - 10);
-      ctx.font = "600 16px ui-sans-serif, system-ui";
-      ctx.fillStyle = "rgba(0,0,0,.30)";
-      ctx.fillText("點一下 / 空白鍵 開始並翻轉重力", W/2, H/2 + 22);
-      ctx.restore();
-    }
-    if(!playing && score>0){
-      ctx.save();
-      ctx.fillStyle = "rgba(0,0,0,.18)";
-      ctx.font = "900 56px ui-sans-serif, system-ui";
-      ctx.textAlign = "center";
-      ctx.fillText("GAME OVER", W/2, H/2 - 70);
-      ctx.restore();
-    }
-  }
-
-  function draw(){
-    drawBackground();
-    // obstacles
-    for(const o of obstacles) drawObstacle(o);
-    // player
-    drawPlayer();
-    // overlay text
-    drawHUD();
-  }
-
-  // ===== Loop =====
-  function loop(t){
-    if(!running) return;
-    if(!lastT) lastT = t;
-    const dt = Math.min(0.033, (t - lastT) / 1000);
-    lastT = t;
-
-    update(dt);
-    draw();
-
-    requestAnimationFrame(loop);
-  }
-
-  // ===== Boot =====
-  reset();
-  requestAnimationFrame(loop);
-
-})();
-</script>
-</body>
-</html>
+  // floor rail
+  ctx.beginPath();
+  ctx.moveTo(0, laneY.floor()+18);
+  ctx.lineTo(W, laneY.floor()+18);
+  ctx.stroke(
