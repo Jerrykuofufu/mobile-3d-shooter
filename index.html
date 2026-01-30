@@ -105,4 +105,554 @@
 
   const overlay = document.getElementById('overlay');
   const startBtn = document.getElementById('startBtn');
-  const howBtn
+  const howBtn = document.getElementById('howBtn');
+
+  // =======================
+  // Audio (no external files)
+  // =======================
+  let audioCtx = null;
+  let sfxEnabled = true;
+  let bgmEnabled = false;
+  let bgmNode = null;
+  let unlocked = false;
+
+  function ensureAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+  }
+
+  function beep({freq=440, dur=0.08, type="sine", gain=0.08, slideTo=null}={}) {
+    if (!sfxEnabled || !audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t0);
+    if (slideTo != null) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(t0);
+    o.stop(t0 + dur + 0.02);
+  }
+
+  function thump() { // gravity flip
+    beep({freq: 220, slideTo: 90, dur: 0.10, type:"triangle", gain:0.10});
+  }
+  function eat() { // pizza
+    beep({freq: 660, slideTo: 990, dur: 0.08, type:"square", gain:0.06});
+    beep({freq: 990, slideTo: 660, dur: 0.07, type:"square", gain:0.05});
+  }
+  function hit() { // crash
+    beep({freq: 120, slideTo: 40, dur: 0.16, type:"sawtooth", gain:0.14});
+  }
+
+  function startBgm() {
+    if (!bgmEnabled || !audioCtx) return;
+    stopBgm();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = "sine";
+    g.gain.value = 0.02;
+    o.frequency.value = 110;
+    o.connect(g).connect(audioCtx.destination);
+    o.start();
+    bgmNode = {o,g};
+    // simple wobble
+    const lfo = audioCtx.createOscillator();
+    const lfoG = audioCtx.createGain();
+    lfo.frequency.value = 0.6;
+    lfoG.gain.value = 22;
+    lfo.connect(lfoG).connect(o.frequency);
+    lfo.start();
+    bgmNode.lfo = lfo;
+  }
+  function stopBgm() {
+    if (!bgmNode) return;
+    try{ bgmNode.o.stop(); }catch(e){}
+    try{ bgmNode.lfo.stop(); }catch(e){}
+    bgmNode = null;
+  }
+
+  function userUnlock() {
+    if (unlocked) return;
+    ensureAudio();
+    unlocked = true;
+    // tiny silent tick to unlock in iOS-like policies
+    if (audioCtx) {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      g.gain.value = 0.00001;
+      o.connect(g).connect(audioCtx.destination);
+      o.start();
+      o.stop(audioCtx.currentTime + 0.02);
+    }
+    if (bgmEnabled) startBgm();
+  }
+
+  // =======================
+  // Game State
+  // =======================
+  const W = canvas.width, H = canvas.height;
+  const GROUND_Y = H - 54;
+  const CEIL_Y = 54;
+  const LANE_THICK = 6;
+
+  const state = {
+    mode: "menu", // menu | running | dead
+    t: 0,
+    score: 0,
+    best: Number(localStorage.getItem("gcr_best") || 0),
+    combo: 0,
+    comboTimer: 0,
+    speed: 260, // px/s
+    speedMul: 1,
+    distSinceSpawn: 0,
+    nextGap: 380,
+    clouds: [],
+    obstacles: [],
+    pizzas: [],
+    particles: [],
+  };
+
+  bestEl.textContent = state.best.toString();
+
+  const player = {
+    x: 150,
+    y: GROUND_Y - 34,
+    w: 30,
+    h: 34,
+    vy: 0,
+    gravDir: 1, // 1 means pull down; -1 pull up
+    onSurface: true,
+    flipCd: 0
+  };
+
+  // =======================
+  // Spawning
+  // =======================
+  function resetWorld() {
+    state.t = 0;
+    state.score = 0;
+    state.combo = 0;
+    state.comboTimer = 0;
+    state.speed = 260;
+    state.speedMul = 1;
+    state.distSinceSpawn = 0;
+    state.nextGap = 420;
+
+    state.clouds = Array.from({length: 6}, ()=>({
+      x: rand(0, W),
+      y: rand(80, 180),
+      s: rand(0.6, 1.4),
+      v: rand(10, 28)
+    }));
+
+    state.obstacles = [];
+    state.pizzas = [];
+    state.particles = [];
+
+    player.x = 150;
+    player.gravDir = 1;
+    player.vy = 0;
+    player.onSurface = true;
+    player.y = GROUND_Y - player.h;
+    player.flipCd = 0;
+
+    updateUI();
+  }
+
+  function scheduleNextGap() {
+    // more score => a bit harder, but keep playable
+    const level = Math.floor(state.score / 600);
+    const base = clamp(430 - level * 10, 310, 430);
+    const jitter = rand(0, 160);
+    // Avoid "too close" double obstacles
+    state.nextGap = base + jitter;
+  }
+
+  function spawnObstacle() {
+    const level = Math.floor(state.score / 600);
+
+    // obstacle on ground or ceiling
+    const onCeil = chance(0.35 + Math.min(0.25, level * 0.03)); // later more ceiling obstacles
+    const w = chance(0.25) ? rand(22, 34) : rand(14, 22);
+    const h = chance(0.35) ? rand(32, 58) : rand(22, 40);
+
+    const x = W + 30;
+    const y = onCeil ? CEIL_Y : (GROUND_Y - h);
+
+    state.obstacles.push({
+      x, y, w, h,
+      onCeil,
+      // for "near miss" scoring
+      passed: false,
+      dangerScored: false
+    });
+
+    // sometimes spawn a pizza after obstacle, but not too often
+    if (chance(0.55)) {
+      const px = x + rand(90, 180);
+      const py = onCeil ? (CEIL_Y + h + rand(28, 70)) : (GROUND_Y - h - rand(28, 70));
+      state.pizzas.push({
+        x: px,
+        y: clamp(py, CEIL_Y + 22, GROUND_Y - 22),
+        r: 12,
+        taken: false
+      });
+    }
+  }
+
+  // =======================
+  // Physics + Controls
+  // =======================
+  function flipGravity() {
+    if (state.mode !== "running") return;
+    if (player.flipCd > 0) return;
+
+    player.gravDir *= -1;
+    player.onSurface = false;
+    // give a small impulse so flip feels snappy
+    player.vy = -player.gravDir * 520;
+    player.flipCd = 0.12;
+    thump();
+  }
+
+  function handlePress() {
+    userUnlock();
+    if (state.mode === "menu") {
+      startGame();
+      return;
+    }
+    if (state.mode === "dead") {
+      // show menu instead of instant start
+      showMenu();
+      return;
+    }
+    flipGravity();
+  }
+
+  function startGame() {
+    resetWorld();
+    state.mode = "running";
+    overlay.style.display = "none";
+    if (bgmEnabled) { ensureAudio(); startBgm(); }
+  }
+
+  function showMenu() {
+    state.mode = "menu";
+    overlay.style.display = "flex";
+  }
+
+  // inputs
+  canvas.addEventListener("pointerdown", (e)=>{ e.preventDefault(); handlePress(); }, {passive:false});
+  document.addEventListener("keydown", (e)=>{
+    if (e.code === "Space" || e.code === "ArrowUp") { e.preventDefault(); handlePress(); }
+  });
+
+  restartBtn.addEventListener("click", ()=>{
+    userUnlock();
+    showMenu();
+  });
+
+  startBtn.addEventListener("click", ()=>{
+    userUnlock();
+    startGame();
+  });
+
+  howBtn.addEventListener("click", ()=>{
+    // just keep the menu open (already open) - playful no-op
+    userUnlock();
+    overlay.style.display = "flex";
+  });
+
+  sfxBtn.addEventListener("click", ()=>{
+    userUnlock();
+    sfxEnabled = !sfxEnabled;
+    sfxBtn.textContent = `SFX: ${sfxEnabled ? "ON" : "OFF"}`;
+  });
+
+  bgmBtn.addEventListener("click", ()=>{
+    userUnlock();
+    bgmEnabled = !bgmEnabled;
+    bgmBtn.textContent = `BGM: ${bgmEnabled ? "ON" : "OFF"}`;
+    if (!bgmEnabled) stopBgm();
+    else if (state.mode === "running") { ensureAudio(); startBgm(); }
+  });
+
+  // =======================
+  // Collision
+  // =======================
+  function aabb(ax, ay, aw, ah, bx, by, bw, bh) {
+    return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+  }
+
+  // =======================
+  // Particles
+  // =======================
+  function burst(x,y, n=18, color="#111") {
+    for (let i=0;i<n;i++){
+      const ang = rand(0, Math.PI*2);
+      const sp = rand(70, 260);
+      state.particles.push({
+        x, y,
+        vx: Math.cos(ang)*sp,
+        vy: Math.sin(ang)*sp,
+        r: rand(1.6, 3.4),
+        life: rand(0.25, 0.55),
+        color
+      });
+    }
+  }
+
+  // =======================
+  // Update + Render
+  // =======================
+  let last = performance.now();
+
+  function update(dt) {
+    if (state.mode !== "running") return;
+
+    state.t += dt;
+
+    // ramp speed gently
+    const targetMul = 1 + Math.min(0.7, state.score / 4500);
+    state.speedMul = state.speedMul + (targetMul - state.speedMul) * (1 - Math.pow(0.001, dt));
+    const speed = state.speed * state.speedMul;
+
+    // score
+    state.score += dt * 60 * state.speedMul; // base score grows with speed
+    if (state.score > state.best) {
+      state.best = Math.floor(state.score);
+      localStorage.setItem("gcr_best", String(state.best));
+    }
+
+    // combo decay
+    if (state.comboTimer > 0) state.comboTimer -= dt;
+    else state.combo = 0;
+
+    // player physics
+    const g = 1700; // px/s^2
+    player.vy += player.gravDir * g * dt;
+    player.y += player.vy * dt;
+
+    // surface clamp
+    if (player.gravDir === 1) {
+      const floor = GROUND_Y - player.h;
+      if (player.y >= floor) { player.y = floor; player.vy = 0; player.onSurface = true; }
+    } else {
+      const ceil = CEIL_Y;
+      if (player.y <= ceil) { player.y = ceil; player.vy = 0; player.onSurface = true; }
+    }
+    player.flipCd = Math.max(0, player.flipCd - dt);
+
+    // clouds
+    for (const c of state.clouds){
+      c.x -= c.v * dt;
+      if (c.x < -120) { c.x = W + rand(20, 180); c.y = rand(80, 180); c.s = rand(0.6,1.4); c.v = rand(10,28); }
+    }
+
+    // spawning
+    state.distSinceSpawn += speed * dt;
+    if (state.distSinceSpawn >= state.nextGap) {
+      state.distSinceSpawn = 0;
+      scheduleNextGap();
+      spawnObstacle();
+
+      // sometimes spawn a "pair" but ensure it isn't unfair
+      const level = Math.floor(state.score / 700);
+      if (level >= 2 && chance(0.18)) {
+        // extra obstacle with large enforced gap
+        state.distSinceSpawn = -rand(140, 220); // push next spawn farther
+      }
+    }
+
+    // obstacles move + collisions + near miss
+    for (const o of state.obstacles){
+      o.x -= speed * dt;
+
+      // collision
+      if (aabb(player.x, player.y, player.w, player.h, o.x, o.y, o.w, o.h)) {
+        // dead
+        state.mode = "dead";
+        hit();
+        burst(player.x + player.w*0.6, player.y + player.h*0.6, 24, "#111");
+        overlay.style.display = "flex";
+        return;
+      }
+
+      // near-miss scoring when obstacle is close to player
+      const pxCenter = player.x + player.w/2;
+      const oxCenter = o.x + o.w/2;
+      const dx = Math.abs(oxCenter - pxCenter);
+
+      if (!o.dangerScored && o.x + o.w < player.x) {
+        // passed successfully
+        o.dangerScored = true;
+
+        // if player passed within a small vertical margin of obstacle edge => "close call"
+        const closeH = 12;
+        let close = false;
+        if (o.onCeil) {
+          // player likely on floor; check distance to obstacle bottom edge
+          const dist = Math.abs((player.y) - (o.y + o.h));
+          close = dist < closeH;
+        } else {
+          const dist = Math.abs((o.y) - (player.y + player.h));
+          close = dist < closeH;
+        }
+
+        let add = 10;
+        if (close) {
+          state.combo = Math.min(99, state.combo + 1);
+          state.comboTimer = 1.4;
+          add = 20 + state.combo * 3;
+          beep({freq: 520, slideTo: 820, dur: 0.06, type:"triangle", gain:0.06});
+        }
+        state.score += add;
+      }
+    }
+    // remove offscreen
+    state.obstacles = state.obstacles.filter(o => o.x > -80);
+
+    // pizzas
+    for (const p of state.pizzas){
+      p.x -= speed * dt;
+      if (!p.taken) {
+        // circle vs rect approx
+        const cx = p.x, cy = p.y;
+        const rx = player.x, ry = player.y, rw = player.w, rh = player.h;
+        const nx = clamp(cx, rx, rx+rw);
+        const ny = clamp(cy, ry, ry+rh);
+        const dist2 = (cx-nx)*(cx-nx) + (cy-ny)*(cy-ny);
+        if (dist2 <= (p.r*p.r)) {
+          p.taken = true;
+          eat();
+          burst(cx, cy, 14, "#111");
+          const bonus = 60 + state.combo * 6;
+          state.score += bonus;
+          state.combo = Math.min(99, state.combo + 1);
+          state.comboTimer = 1.8;
+        }
+      }
+    }
+    state.pizzas = state.pizzas.filter(p => p.x > -60 && !p.taken);
+
+    // particles
+    for (const q of state.particles){
+      q.life -= dt;
+      q.vy += 1200 * dt;
+      q.x += q.vx * dt;
+      q.y += q.vy * dt;
+      q.vx *= Math.pow(0.001, dt); // heavy damping
+    }
+    state.particles = state.particles.filter(q => q.life > 0);
+
+    updateUI();
+  }
+
+  function updateUI() {
+    scoreEl.textContent = Math.floor(state.score).toString();
+    bestEl.textContent  = Math.floor(state.best).toString();
+    comboEl.textContent = state.combo.toString();
+    spdEl.textContent   = (state.speedMul).toFixed(2);
+  }
+
+  function draw() {
+    // background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0,0,W,H);
+
+    // clouds
+    ctx.fillStyle = "#d9dee8";
+    for (const c of state.clouds){
+      const x=c.x, y=c.y, s=c.s;
+      roundCloud(x,y, 34*s, 18*s);
+    }
+
+    // lane lines
+    ctx.fillStyle = "#111";
+    // top lane
+    ctx.fillRect(40, CEIL_Y - LANE_THICK, W-80, LANE_THICK);
+    // bottom lane
+    ctx.fillRect(40, GROUND_Y, W-80, LANE_THICK);
+
+    // dotted road line (middle)
+    ctx.fillStyle = "#c8c8c8";
+    for (let x=60; x<W-60; x+=28){
+      ctx.fillRect(x, (GROUND_Y+CEIL_Y)/2 + 120, 14, 2);
+    }
+
+    // obstacles
+    ctx.fillStyle = "#111";
+    for (const o of state.obstacles){
+      // slightly rounded
+      roundedRect(o.x, o.y, o.w, o.h, 4);
+    }
+
+    // pizzas
+    for (const p of state.pizzas){
+      drawPizza(p.x, p.y, p.r);
+    }
+
+    // player
+    drawCourier(player.x, player.y, player.w, player.h, player.gravDir);
+
+    // particles
+    for (const q of state.particles){
+      const a = clamp(q.life / 0.55, 0, 1);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = q.color;
+      ctx.beginPath();
+      ctx.arc(q.x, q.y, q.r, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // border inner label
+    if (state.mode === "menu") {
+      // small hint on canvas
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.font = "700 18px system-ui";
+      ctx.fillText("點一下開始 / 翻轉重力", 60, 96);
+    } else if (state.mode === "dead") {
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.font = "800 46px system-ui";
+      ctx.fillText("GAME OVER", W/2 - 140, H/2 - 10);
+      ctx.font = "700 16px system-ui";
+      ctx.fillText("點「重新開始」回到開始畫面", W/2 - 118, H/2 + 22);
+    }
+  }
+
+  function roundCloud(x,y,w,h){
+    ctx.beginPath();
+    ctx.ellipse(x, y, w*0.7, h*0.6, 0, 0, Math.PI*2);
+    ctx.ellipse(x+w*0.35, y-8, w*0.55, h*0.52, 0, 0, Math.PI*2);
+    ctx.ellipse(x-w*0.35, y-6, w*0.5, h*0.45, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  function roundedRect(x,y,w,h,r){
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr, y);
+    ctx.arcTo(x+w, y, x+w, y+h, rr);
+    ctx.arcTo(x+w, y+h, x, y+h, rr);
+    ctx.arcTo(x, y+h, x, y, rr);
+    ctx.arcTo(x, y, x+w, y, rr);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawPizza(x,y,r){
+    // simple pizza icon
+    ctx.save();
+    ctx.translate(x,y);
+    // base
+    ctx.fillStyle = "#111";
+    ctx.beginPath();
+    ctx.arc(0,0,r,0,Math.PI*2);
+    ctx.fill();
+    // slice cut
+    ctx.fillStyle = "#
